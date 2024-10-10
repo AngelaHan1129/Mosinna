@@ -1,0 +1,41 @@
+{
+  "development": {
+    "username": "postgres",
+    "password": "postgres",
+    "database": "postgres",
+    "host": "localhost",
+    "port": 5432,
+    "dialect": "postgres",
+    "dialectOptions": {
+      "useUTC": false,
+      "timezone": "+08:00"
+    },
+    "timezone": "+08:00"
+  },
+  "test": {
+    "username": "postgres",
+    "password": "postgres",
+    "database": "postgres",
+    "host": "localhost",
+    "port": 5433,
+    "dialect": "postgres",
+    "dialectOptions": {
+      "useUTC": false,
+      "timezone": "+08:00"
+    },
+    "timezone": "+08:00"
+  },
+  "production": {
+    "username": "postgres",
+    "password": "postgres",
+    "database": "postgres",
+    "host": "localhost",
+    "port": 5432,
+    "dialect": "postgres",
+    "dialectOptions": {
+      "useUTC": false,
+      "timezone": "+08:00"
+    },
+    "timezone": "+08:00"
+  }
+}

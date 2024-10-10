@@ -1,12 +1,11 @@
-const express = require('express');
-const morgan = require('morgan');
-const helmet = require('helmet');
-const cors = require('cors');
-
-require('dotenv').config();
-
-const middlewares = require('./middlewares');
-const api = require('./api');
+import express from 'express'
+import morgan from 'morgan'
+import helmet from 'helmet'
+import cors from 'cors'
+import 'dotenv/config'
+import  middlewares from './middlewares.js'
+import  api from './api/index.js'
+import db from './db/index.js'
 
 const app = express();
 
@@ -26,4 +25,6 @@ app.use('/api/v1', api);
 app.use(middlewares.notFound);
 app.use(middlewares.errorHandler);
 
-module.exports = app;
+// module.exports = app;
+
+export default app

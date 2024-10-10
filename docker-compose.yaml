@@ -1,0 +1,20 @@
+volumes:
+    postgre-data:
+
+services:
+  postgresql:
+    image: 'bitnami/postgresql:latest'
+    ports: 
+      - 5432:5432
+    environment:
+      - POSTGRESQL_PASSWORD=postgres
+      - TZ='GMT+8'
+    volumes:
+      - postgre-data:/bitnami/postgresql
+  postgresql_test:
+    image: 'bitnami/postgresql:latest'
+    ports: 
+      - 5433:5432
+    environment:
+      - POSTGRESQL_PASSWORD=postgres
+      - TZ='GMT+8'
