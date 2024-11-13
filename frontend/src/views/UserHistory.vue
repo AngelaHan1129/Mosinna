@@ -33,6 +33,7 @@
                     :src="item.videoUrl"
                     controls
                     class="w-full h-full object-cover rounded"
+                    playsinline
                   ></video>
 
                   <button

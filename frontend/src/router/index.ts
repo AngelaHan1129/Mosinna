@@ -4,6 +4,7 @@ import Report from '@/views/UserReport.vue'
 import History from '@/views/UserHistory.vue'
 import Notifi from '@/views/BackNotification.vue'
 import RiskHistory from '@/views/RiskHistory.vue'
+import Maintenance from '@/views/Maintenance.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -39,7 +40,15 @@ const routes: Array<RouteRecordRaw> = [
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes
+  routes:
+    import.meta.env.VITE_IS_MAINTAIN === 'true'
+      ? [
+          {
+            path: '/:pathMatch(.*)*',
+            component: Maintenance
+          }
+        ]
+      : routes
 })
 
 export default router
