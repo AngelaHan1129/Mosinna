@@ -2,8 +2,7 @@ module.exports = {
     apps: [
       {
         name: "mosinna_heartbeat",
-        script: "npm",
-        args: "run dev",
+        script: "./index.js",
         env: {
           NODE_ENV: "production",
         },
