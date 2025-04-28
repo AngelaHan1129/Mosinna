@@ -4,7 +4,7 @@
     "description": "A basic starter for an express.js API",
     "main": "index.js",
     "scripts": {
-        "start": "node src/index.js",
+        "start": "npm run migrate:dev && babel-node src/index.js",
         "server:dev": "nodemon src/index.js --exec babel-node",
         "dev": "npm run migrate:dev && npm run server:dev",
         "lint": "eslint --fix src test",
