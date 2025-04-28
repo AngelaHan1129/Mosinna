@@ -27,24 +27,17 @@ export class CheckController {
      */
     async uploadVideo(req, res) {
         try {
+            req.on('close', () => {
+                console.log('Client disconnected')
+            })
+            res.writeHead(200, {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+            })
             // proxy to ai detection services
             const { videoData } = req.body
-            if (process.env.SSE_TEST === 'true') {
-                res.writeHead(200, {
-                    'Content-Type': 'text/event-stream',
-                    'Cache-Control': 'no-cache',
-                    'X-Accel-Buffering': 'no',
-                })
-
-                req.on('close', () => {
-                    console.log('Client disconnected')
-                })
-                await this.checkService.proxyToCheckServiceSSE(res, {
-                    videoData,
-                })
-                return
-            }
-            const result = await this.checkService.proxyToCheckService({
+            const result = await this.checkService.proxyToCheckServiceSSE(res, {
                 videoData,
             })
 
@@ -64,19 +57,9 @@ export class CheckController {
                     }
                 }),
             })
-
-            const resourceHost =
-                process.env.RESOURCES_PATH || 'http://localhost:5000/resources'
-            // response to client
-            return res.json(
-                apiFormatter({
-                    id: video?.id,
-                    video_path: `${resourceHost}/${video?.video_path}`,
-                    checkList: result,
-                }),
-            )
+            res.end()
         } catch (error) {
-            console.log(error)
+            console.error(error)
             return res.status(500).json(apiFormatter(null, 500, '伺服器錯誤'))
         }
     }
@@ -87,6 +70,14 @@ export class CheckController {
      */
     async uploadUrl(req, res) {
         try {
+            req.on('close', () => {
+                console.log('Client disconnected')
+            })
+            res.writeHead(200, {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+            })
             const { url } = req.body
             if (
                 !url ||
@@ -97,26 +88,8 @@ export class CheckController {
                 throw new Error('只接受 YouTube 影片連結')
             }
 
-            if (process.env.SSE_TEST === 'true') {
-                res.writeHead(200, {
-                    'Content-Type': 'text/event-stream',
-                    'Cache-Control': 'no-cache',
-                    'X-Accel-Buffering': 'no',
-                })
-                console.log('SSE TEST')
-                await this.checkService.proxyToCheckServiceSSE(res, {
-                    videoData: 'any',
-                })
-                req.on('close', () => {
-                    console.log('Client disconnected')
-                })
-                res.end()
-                return
-            }
             const videoData = await this.videoService.getVideoData(url)
-
-            // proxy to ai detection services
-            const result = await this.checkService.proxyToCheckService({
+            const result = await this.checkService.proxyToCheckServiceSSE(res, {
                 videoData,
             })
 
@@ -137,25 +110,16 @@ export class CheckController {
                 }),
             })
 
-            const resourceHost =
-                process.env.RESOURCES_PATH || 'http://localhost:5000/resources'
-            // response to client
-            return res.json(
-                apiFormatter({
-                    id: video?.id,
-                    video_path: `${resourceHost}/${video?.video_path}`,
-                    checkList: result,
-                }),
-            )
+            res.end()
         } catch (error) {
-            console.log(error)
+            console.error(error)
             if (
                 error.message === '只接受 YouTube 影片連結' ||
                 error.message === '檔案過大或此影片已下架'
             ) {
-                return res
-                    .status(400)
-                    .json(apiFormatter(null, 400, error.message))
+                return this.checkService.sendSSE(res, 'ValidationError', {
+                    message: error.message,
+                })
             }
             return res.status(500).json(apiFormatter(null, 500, '伺服器錯誤'))
         }

@@ -31,14 +31,14 @@ export const useUploadStore = defineStore("upload", () => {
       onmessage(event) {
         try {
           const data = JSON.parse(event.data);
-          events.value.push(data); // 將事件推入事件列表
+          events.value.push(data);
           if (events.value.find((x) => x.type === "AllCheckFinished")) {
-            controller.abort(); // 終止 SSE 連接
+            controller.abort();
           }
         } catch (e) {}
       },
-      onerror() {
-        controller.abort(); // 終止 SSE 連接
+      onerror(error) {
+        throw error;
       },
     });
   };
@@ -62,14 +62,17 @@ export const useUploadStore = defineStore("upload", () => {
       onmessage(event) {
         try {
           const data = JSON.parse(event.data);
-          events.value.push(data); // 將事件推入事件列表
+          events.value.push(data);
+          if (events.value.find((x) => x.type === "ValidationError")) {
+            controller.abort();
+          }
           if (events.value.find((x) => x.type === "AllCheckFinished")) {
-            controller.abort(); // 終止 SSE 連接
+            controller.abort();
           }
         } catch (e) {}
       },
-      onerror(err) {
-        controller.abort(); // 終止 SSE 連接
+      onerror(error) {
+        throw error;
       },
     });
   };

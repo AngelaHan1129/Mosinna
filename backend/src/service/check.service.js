@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { EXTERNAL_SERVICE_NAME } from '../enum/external-service-name.enum'
 
 export class CheckService {
     /**
@@ -43,7 +44,9 @@ export class CheckService {
     async proxyToCheckServiceSSE(res, input) {
         const { videoData } = input
         // 找出所有可用的 Services
-        const services = await this.serviceRepository.getServices()
+        const services = (
+            await this.serviceRepository.getAllAvaliableServices()
+        ).filter((x) => x.name !== EXTERNAL_SERVICE_NAME.URL2BASE64)
 
         if (!services.length) {
             this.sendSSE(res, 'ValidationError', {
@@ -62,25 +65,44 @@ export class CheckService {
             services.map(async (service) => {
                 try {
                     const endPoint = `${service.host}/api/check`
+                    let responseData
 
-                    // Mock response time between 5-30 seconds
-                    const mockResponseTime = Math.floor(Math.random() * 21) + 5 // Random number between 10-30
-                    await new Promise((resolve) =>
-                        setTimeout(resolve, mockResponseTime * 1000),
-                    )
-
-                    // Simulate response data
-                    const data = {
-                        result: Math.random() > 0.5 ? '可能為 ai' : 'pass',
-                        details: `Checked in ${mockResponseTime} seconds`,
+                    // Use simulation mode if SSE_TEST is enabled
+                    if (
+                        process.env.SSE_TEST === 'true' &&
+                        process.env.NODE_ENV !== 'test'
+                    ) {
+                        // Default simulation: 5-10 seconds
+                        const mockResponseTime =
+                            5 + Math.floor(Math.random() * 6)
+                        // Simulate processing delay
+                        await new Promise((resolve) =>
+                            setTimeout(resolve, mockResponseTime * 1000),
+                        )
+                        // Create mock response
+                        responseData = {
+                            result: Math.random() > 0.5 ? '可能為 ai' : 'pass',
+                            details: `Checked in ${mockResponseTime} seconds`,
+                        }
+                    } else {
+                        // Call actual service API
+                        const response = await axios.post(endPoint, {
+                            videoData,
+                        })
+                        responseData = response.data
+                        console.log(new Date())
+                        console.log(responseData)
                     }
 
+                    // Prepare result payload
                     const payload = {
                         id: service.id,
                         name: service.name,
-                        result: mapResultToPassOrRisky(data?.result),
-                        details: data?.details || undefined,
+                        result: mapResultToPassOrRisky(responseData?.result),
+                        details: responseData?.details || undefined,
                     }
+
+                    // Send event to client
                     this.sendSSE(res, 'VideoCheckFinished', payload)
                     return payload
                 } catch (error) {
@@ -92,42 +114,6 @@ export class CheckService {
         this.sendSSE(res, 'AllCheckFinished', {
             message: '所有檢測服務已完成',
         })
-
-        // 彙整所有檢測結果並回傳
-        return results.filter((x) => x !== null)
-    }
-
-    async proxyToCheckService(input) {
-        const { videoData } = input
-        // 找出所有可用的 Services
-        const services = await this.serviceRepository.getAllAvaliableServices()
-
-        if (!services.length) {
-            throw new Error('沒有可用的檢測服務')
-        }
-
-        // 透過 axios 呼叫檢測服務
-        const results = await Promise.all(
-            services.map(async (service) => {
-                try {
-                    const endPoint = `${service.host}/api/check`
-                    const { data } = await axios.post(endPoint, {
-                        videoData,
-                    })
-                    console.log(new Date())
-                    console.log(data)
-                    return {
-                        id: service.id,
-                        name: service.name,
-                        result: mapResultToPassOrRisky(data?.result),
-                        details: data?.details || undefined,
-                    }
-                } catch (error) {
-                    console.log(error.message)
-                    return null
-                }
-            }),
-        )
 
         // 彙整所有檢測結果並回傳
         return results.filter((x) => x !== null)

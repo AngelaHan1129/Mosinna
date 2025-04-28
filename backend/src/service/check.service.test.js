@@ -64,9 +64,11 @@ describe(`Unit test for CheckService`, () => {
                 text: '影片文字',
             },
         })
-
+        const mockRes = {
+            write: jest.fn(),
+        }
         // when
-        const result = await service.proxyToCheckService(payload)
+        const result = await service.proxyToCheckServiceSSE(mockRes, payload)
 
         // then
         expect(repository.getAllAvaliableServices).toHaveBeenCalledTimes(1)
@@ -97,12 +99,22 @@ describe(`Unit test for CheckService`, () => {
         const repository = new FakeServiceRepository()
         const service = new CheckService(repository)
         jest.spyOn(repository, 'getAllAvaliableServices').mockResolvedValue([])
+        const mockRes = {
+            write: jest.fn(),
+        }
 
         // when
-        const result = service.proxyToCheckService(payload)
+        await service.proxyToCheckServiceSSE(mockRes, payload)
 
         // then
-        expect(result).rejects.toThrow(Error)
+        expect(mockRes.write).toHaveBeenCalledWith(
+            `data: ${JSON.stringify({
+                type: 'ValidationError',
+                data: {
+                    message: '沒有可用的檢測服務',
+                },
+            })} \n\n`,
+        )
     })
 
     it(`

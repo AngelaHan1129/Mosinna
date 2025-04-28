@@ -1,5 +1,6 @@
 import app from './app'
 import db from './db'
+import 'dotenv/config'
 
 const port = process.env.PORT || 5000
 app.listen(port, async () => {
