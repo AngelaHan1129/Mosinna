@@ -2,9 +2,8 @@ module.exports = {
   apps: [
     {
       name: "mosinna_heartbeat",
-      script: "npm",
+      script: "./pm2-npm.js",
       args: 'start',
-      interpreter: process.platform === 'win32' && 'C:\\Windows\\System32\\cmd.exe',
       env: {
         NODE_ENV: "production",
       },
