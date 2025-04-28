@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "mosinna_heartbeat",
       script: "npm",
-      args: "start",
+      args: 'run deploy',
       env: {
         NODE_ENV: "production",
       },

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "deploy": "node deploy.js",
     "start": "babel-node index.js",
     "dev": "nodemon index.js --exec babel-node",
     "test": "jest"
