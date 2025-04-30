@@ -134,11 +134,9 @@
                 </div>
                 <div
                   class="flex-1 md:p-2.5 text-center p-2 sm:p-4 rounded text-white text-sm sm:text-base"
-                  :class="
-                    gridItem.value === 'risky' ? 'bg-[#C8698A]' : 'bg-[#56af54]'
-                  "
+                  :class="getGridItemClass(gridItem.status)"
                 >
-                  {{ gridItem.value === "risky" ? "可疑內容" : "尚未發現風險" }}
+                  {{ getGridItemText(gridItem.status) }}
                 </div>
               </div>
             </div>
@@ -164,10 +162,10 @@
               class="mt-2 text-sm text-gray-700"
             >
               影片連結位址：<a
-                :href="currentItem.url"
+                :href="currentItem?.url || '#'"
                 target="_blank"
                 class="underline text-blue-700"
-                >{{ currentItem.url }}</a
+                >{{ currentItem?.url }}</a
               >
             </div>
           </div>
@@ -194,28 +192,32 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from "vue";
+<script setup lang="ts">
+import { ref, computed, onMounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import Chart from "chart.js/auto";
 import ShareResult from "../components/ShareResult.vue";
+import { CheckResult, HistoryPageItem } from "@/types/history";
 
-// State
-const items = ref([]);
-const gridItems = ref([]);
+const items = ref<HistoryPageItem[]>([]);
+const gridItems = ref<
+  {
+    title: string;
+    status: "pass" | "risky" | "error" | "unknown";
+  }[]
+>([]);
 const showModal = ref(false);
-const currentItem = ref(null);
+const currentItem = ref<HistoryPageItem | null>(null);
 const showModalshare = ref(false);
 const detailsText = ref("");
 const errorMessage = ref("");
 const currentPage = ref(1);
 const route = useRoute();
+let chartInstance: Chart<"doughnut", number[], string> | null = null; // Store chart instance
 
-// Constants
 const ITEMS_PER_PAGE = 6;
 const API_URL = `${import.meta.env.VITE_BACKEND_HOST}/api/history`;
 
-// Computed
 const totalPages = computed(() =>
   Math.ceil(items.value.length / ITEMS_PER_PAGE)
 );
@@ -242,9 +244,61 @@ const displayedPages = computed(() => {
 });
 
 // Methods
-const changePage = (page) => {
+const changePage = (page: number) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page;
+  }
+};
+
+const mapResultToStatus = (result: string) => {
+  if (["pass", "risky", "error"].includes(result)) {
+    return result as "pass" | "risky" | "error";
+  }
+  return "unknown" as const;
+};
+
+const getStatusTooltip = (status: string) => {
+  switch (status) {
+    case "pass":
+      return "目前系統尚未檢測到任何影、音訊偽造詐騙的風險。";
+    case "risky":
+      return "系統在檢測中發現疑似可疑內容。建議您謹慎處理此影片。";
+    case "error":
+      return "檢測過程中發生錯誤。請稍後再試或聯絡管理員。";
+    case "unknown":
+      return "檢測狀態未知。請聯絡管理員以獲取協助。";
+    default:
+      return "未知狀態";
+  }
+};
+
+const getGridItemClass = (status: string) => {
+  switch (status) {
+    case "pass":
+      return "bg-[#4CAF50]"; // Green for pass
+    case "risky":
+      return "bg-[#C8698A]"; // Original risky color
+    case "error":
+      return "bg-[#e50b57]"; // Red for error
+    case "unknown":
+      return "bg-[#9d918e]"; // Gray for unknown
+    default:
+      return "bg-gray-400";
+  }
+};
+
+const getGridItemText = (status: string) => {
+  switch (status) {
+    case "pass":
+      return "尚未發現風險";
+    case "risky":
+      return "疑似可疑內容";
+    case "error":
+      return "檢測失敗";
+    case "unknown":
+      return "狀態未知";
+    default:
+      return "未知";
   }
 };
 
@@ -256,7 +310,7 @@ const fetchHistory = async () => {
     const { data: storedData, status, message } = await response.json();
 
     if (Array.isArray(storedData)) {
-      items.value = storedData.map((item) => ({
+      items.value = (storedData as CheckResult[]).map((item) => ({
         id: item.id,
         name: `影片ID: ${item.id}`,
         videoUrl: item.video_path,
@@ -265,25 +319,24 @@ const fetchHistory = async () => {
         services: item.services.map((service) => ({
           name: service.name,
           result: service.result,
+          status: mapResultToStatus(service.result), // Map result to status
           details: JSON.parse(service.details || "{}"),
         })),
         checkedAt: item.checked_at || "",
       }));
 
-      const firstServiceWithConfidence = storedData
-        .flatMap((item) => item.services)
-        .find((service) => service.details?.confidence);
-
-      if (firstServiceWithConfidence) {
-        detailsText.value = `服務: ${firstServiceWithConfidence.name}, 信心度: ${firstServiceWithConfidence.details.confidence}`;
-      }
-
-      // 檢查 URL 中是否有 id 參數
+      // Check for URL parameter after data is loaded
       const historyId = route.query.id;
       if (historyId) {
-        const item = items.value.find((video) => video.id === historyId);
-        if (item) showPopup(item);
+        const itemToDisplay = items.value.find(
+          (video) => video.id === historyId
+        );
+        if (itemToDisplay) {
+          showPopup(itemToDisplay);
+        }
       }
+    } else {
+      errorMessage.value = "獲取的資料格式不正確";
     }
   } catch (error) {
     console.error("Fetch Error:", error);
@@ -291,52 +344,107 @@ const fetchHistory = async () => {
   }
 };
 
-const showPopup = (item) => {
+const showPopup = async (item: HistoryPageItem) => {
   currentItem.value = item;
-  showModal.value = true;
   gridItems.value = item.services.map((service) => ({
     title: service.name,
-    value: service.result === "risky" ? "risky" : "pass",
+    status: service.status, // Use status instead of value/result
   }));
-  // 設置分享文字
-  const riskyService = gridItems.value
-    ?.filter((item) => item.value === "risky")
+  showModal.value = true;
+
+  // Set share text based on risky items
+  const riskyServices = gridItems.value
+    ?.filter((item) => item.status === "risky")
     .map((item) => `「${item.title}」`);
-  if (riskyService.length > 0) {
-    detailsText.value = `要小心！我在魔聲仔中的${riskyService.join(
+  if (riskyServices.length > 0) {
+    detailsText.value = `要小心！我在魔聲仔中的${riskyServices.join(
       "、"
     )}中檢測到可疑內容，建議大家小心使用。`;
+  } else {
+    detailsText.value = `我在魔聲仔中檢測了這個影片，目前看起來沒有問題！`; // Default text if no risky items
   }
-  setTimeout(renderChart, 300);
+
+  // Wait for the DOM to update before rendering the chart
+  await nextTick();
+  renderChart();
 };
 
 const renderChart = () => {
-  const ctx = document.getElementById("myChartHistory")?.getContext("2d");
+  const ctx = (
+    document.getElementById("myChartHistory") as HTMLCanvasElement
+  )?.getContext("2d");
   if (!ctx) return;
 
-  const riskyCount = gridItems.value.filter(
-    (item) => item.value === "risky"
-  ).length;
-  const passCount = gridItems.value.filter(
-    (item) => item.value === "pass"
-  ).length;
+  // Destroy previous chart instance if it exists
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
 
-  new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      datasets: [
-        {
-          label: "檢測結果",
-          data: [passCount, riskyCount],
-          backgroundColor: ["#56af54", "#C8698A"],
-          borderColor: "rgba(75, 192, 192, 1)",
-          borderWidth: 0.2,
-        },
-      ],
+  const statusCounts = gridItems.value.reduce(
+    (acc, item) => {
+      acc[item.status] = (acc[item.status] || 0) + 1;
+      return acc;
     },
+    { pass: 0, risky: 0, error: 0, unknown: 0 }
+  );
+
+  const chartData = {
+    labels: ["尚未發現風險", "疑似可疑內容", "檢測失敗", "未知"], // Corresponds to pass, risky, error, unknown
+    datasets: [
+      {
+        label: "檢測結果",
+        data: [
+          statusCounts.pass,
+          statusCounts.risky,
+          statusCounts.error,
+          statusCounts.unknown,
+        ],
+        backgroundColor: [
+          "#4CAF50", // pass
+          "#C8698A", // risky
+          "#e50b57", // error
+          "#9d918e", // unknown
+        ],
+        borderColor: "rgba(255, 255, 255, 0.5)", // Add border for better visibility
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  chartInstance = new Chart(ctx, {
+    type: "doughnut",
+    data: chartData,
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const count = context.parsed;
+              const labelIndex = context.dataIndex;
+              const status = ["pass", "risky", "error", "unknown"][labelIndex];
+              const tooltipText = getStatusTooltip(status);
+              const text = `${context.dataset.label}: ${count} (${tooltipText})`; // 換行處理
+              const matches = text.match(/.{1,15}/g);
+              return matches
+                ? matches.join(",LINEBREAK").split(",LINEBREAK")
+                : [text];
+            },
+          },
+        },
+        legend: {
+          position: "top",
+          labels: {
+            filter: (legendItem, chartData) => {
+              const dataset = chartData.datasets[0];
+              const dataValue = dataset.data[Number(legendItem.index)];
+              return Number(dataValue) > 0;
+            },
+          },
+        },
+      },
     },
   });
 };
@@ -361,6 +469,12 @@ onMounted(() => {
 
 const closePopup = () => {
   showModal.value = false;
+  currentItem.value = null; // Clear current item
+  gridItems.value = []; // Clear grid items
+  if (chartInstance) {
+    chartInstance.destroy(); // Clean up chart instance
+    chartInstance = null;
+  }
 };
 
 const showPopupshare = () => {

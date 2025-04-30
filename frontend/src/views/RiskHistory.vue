@@ -12,13 +12,20 @@
 
       <!-- Main Content -->
       <div class="flex-1 flex flex-col justify-between p-4">
-        <div class="bg-white rounded-lg shadow-md p-4">
+        <div v-if="items.length === 0" class="text-center text-white p-4">
+          沒有風險檢測記錄
+        </div>
+        <div v-else class="bg-white rounded-lg shadow-md p-4">
           <table class="w-full">
             <thead>
               <tr class="bg-gray-100">
-                <th class="py-2 px-4 text-left">檢測來源</th>
-                <th class="py-2 px-4 text-left">檢測時間</th>
-                <th class="py-2 px-4 text-center">操作</th>
+                <th class="py-2 px-4 text-left text-sm sm:text-base">
+                  檢測來源
+                </th>
+                <th class="py-2 px-4 text-left text-sm sm:text-base">
+                  檢測時間
+                </th>
+                <th class="py-2 px-4 text-center text-sm sm:text-base">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -27,20 +34,24 @@
                 :key="index"
                 class="border-b"
               >
-                <td class="py-2 px-4">{{ item.source || "使用者上傳" }}</td>
-                <td class="py-2 px-4">
+                <td class="py-2 px-4 text-sm sm:text-base">
+                  {{ item.source || "使用者上傳" }}
+                </td>
+                <td class="py-2 px-4 text-sm sm:text-base">
                   {{ new Date(item.checkedAt).toLocaleString() }}
                 </td>
-                <td class="py-2 px-4 text-center flex gap-2 justify-center">
+                <td
+                  class="py-2 px-4 text-center flex flex-col sm:flex-row gap-2 justify-center items-center"
+                >
                   <button
                     @click="showDetails(item)"
-                    class="px-4 py-1.5 bg-[#6b5276] text-white rounded hover:bg-[#574460] transition-colors"
+                    class="px-3 py-1 sm:px-4 sm:py-1.5 text-xs sm:text-sm bg-[#6b5276] text-white rounded hover:bg-[#574460] transition-colors w-full sm:w-auto"
                   >
                     詳細記錄
                   </button>
                   <button
                     @click="handleReport(item)"
-                    class="px-4 py-1.5 bg-orange-400 text-white rounded hover:bg-orange-300 transition-colors"
+                    class="px-3 py-1 sm:px-4 sm:py-1.5 text-xs sm:text-sm bg-orange-400 text-white rounded hover:bg-orange-300 transition-colors w-full sm:w-auto"
                   >
                     通報
                   </button>
@@ -51,27 +62,27 @@
         </div>
 
         <!-- Pagination -->
-        <div class="flex justify-center gap-2 mt-4">
+        <div v-if="items.length > 0" class="flex justify-center gap-1 mt-4">
           <button
             @click="changePage(1)"
             :disabled="currentPage === 1"
-            class="px-3 py-2 rounded bg-gray-200 text-stone-900 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+            class="px-2 py-1.5 text-sm rounded bg-gray-200 text-stone-900 disabled:opacity-50 hover:bg-gray-50 transition-colors"
           >
             &lt;&lt;
           </button>
           <button
             @click="changePage(currentPage - 1)"
             :disabled="currentPage === 1"
-            class="px-3 py-2 rounded bg-gray-200 text-stone-900 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+            class="px-2 py-1.5 text-sm rounded bg-gray-200 text-stone-900 disabled:opacity-50 hover:bg-gray-50 transition-colors"
           >
             &lt;
           </button>
           <button
-            v-for="page in pages"
+            v-for="page in displayedPages"
             :key="page"
             @click="changePage(page)"
             :class="[
-              'px-3 py-2 rounded transition-colors',
+              'px-2 py-1.5 text-sm rounded transition-colors',
               currentPage === page
                 ? 'bg-gray-50 text-stone-900'
                 : 'bg-gray-200 text-stone-900 hover:bg-gray-100',
@@ -82,14 +93,14 @@
           <button
             @click="changePage(currentPage + 1)"
             :disabled="currentPage === totalPages"
-            class="px-3 py-2 rounded bg-gray-200 text-stone-900 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+            class="px-2 py-1.5 text-sm rounded bg-gray-200 text-stone-900 disabled:opacity-50 hover:bg-gray-50 transition-colors"
           >
             &gt;
           </button>
           <button
             @click="changePage(totalPages)"
             :disabled="currentPage === totalPages"
-            class="px-3 py-2 rounded bg-gray-200 text-stone-900 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+            class="px-2 py-1.5 text-sm rounded bg-gray-200 text-stone-900 disabled:opacity-50 hover:bg-gray-50 transition-colors"
           >
             &gt;&gt;
           </button>
@@ -127,20 +138,18 @@
               <div
                 v-for="(gridItem, gridIndex) in gridItems"
                 :key="gridIndex"
-                class="flex flex-row justify-between w-full max-w-[400px] my-2 md:my-2.5 mx-2 md:mx-2.5 gap-2"
+                class="flex flex-row justify-between w-full max-w-[400px] my-2 md:my-2.5 mx-auto md:mx-2.5 gap-2"
               >
                 <div
-                  class="flex-1 p-2 md:p-2.5 text-center rounded bg-[#6b5276] text-[#dad8eb]"
+                  class="flex-1 p-2 md:p-2.5 text-center rounded bg-[#6b5276] text-[#dad8eb] text-sm sm:text-base"
                 >
                   {{ gridItem.title }}
                 </div>
                 <div
-                  class="flex-1 md:p-2.5 text-center p-2 sm:p-4 rounded text-white text-sm sm:text-base"
-                  :class="
-                    gridItem.value === 'risky' ? 'bg-[#C8698A]' : 'bg-[#56af54]'
-                  "
+                  class="flex-1 md:p-2.5 text-center p-2 rounded text-white text-sm sm:text-base"
+                  :class="getGridItemClass(gridItem.status)"
                 >
-                  {{ gridItem.value === "risky" ? "可疑內容" : "尚未發現風險" }}
+                  {{ getGridItemText(gridItem.status) }}
                 </div>
               </div>
             </div>
@@ -166,10 +175,10 @@
               class="mt-2 text-sm text-gray-700"
             >
               影片連結位址：<a
-                :href="currentItem.url"
+                :href="currentItem?.url || '#'"
                 target="_blank"
                 class="underline text-blue-700"
-                >{{ currentItem.url }}</a
+                >{{ currentItem?.url }}</a
               >
             </div>
           </div>
@@ -179,25 +188,31 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted } from "vue";
+<script setup lang="ts">
+import { ref, computed, onMounted, nextTick } from "vue"; // Import nextTick
 import { useRouter } from "vue-router";
 import Chart from "chart.js/auto";
+import { toast } from "vue3-toastify";
+import { CheckResult, HistoryPageItem } from "@/types/history";
 
-// State
-const items = ref([]);
-const gridItems = ref([]);
+
+
+const items = ref<HistoryPageItem[]>([]);
+const gridItems = ref<
+  {
+    title: string;
+    status: "pass" | "risky" | "error" | "unknown";
+  }[]
+>([]);
 const showModal = ref(false);
-const currentItem = ref(null);
-const errorMessage = ref("");
+const currentItem = ref<HistoryPageItem | null>(null);
 const currentPage = ref(1);
 const router = useRouter();
+let chartInstance: Chart<"doughnut", number[], string> | null = null; // Store chart instance
 
-// Constants
 const ITEMS_PER_PAGE = 10;
 const API_URL = `${import.meta.env.VITE_BACKEND_HOST}/api/history`;
 
-// Computed
 const totalPages = computed(() =>
   Math.ceil(items.value.length / ITEMS_PER_PAGE)
 );
@@ -206,29 +221,76 @@ const paginatedItems = computed(() => {
   const end = start + ITEMS_PER_PAGE;
   return items.value.slice(start, end);
 });
-const pages = computed(() =>
-  Array.from({ length: totalPages.value }, (_, i) => i + 1)
-);
 
-// Methods
-const changePage = (page) => {
+const displayedPages = computed(() => {
+  const maxButtons = 5;
+  const halfButtons = Math.floor(maxButtons / 2);
+  let startPage = Math.max(currentPage.value - halfButtons, 1);
+  let endPage = Math.min(startPage + maxButtons - 1, totalPages.value);
+
+  if (endPage - startPage + 1 < maxButtons) {
+    startPage = Math.max(endPage - maxButtons + 1, 1);
+  }
+
+  return Array.from(
+    { length: Math.min(maxButtons, endPage - startPage + 1) },
+    (_, i) => startPage + i
+  );
+});
+
+const changePage = (page: number) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page;
   }
 };
 
-const handleReport = (item) => {
+const mapResultToStatus = (result: string) => {
+  if (!["pass", "risky", "error"].includes(result)) {
+    return "unknown";
+  }
+  return result as "pass" | "risky" | "error";
+};
+
+const getGridItemClass = (status: string) => {
+  switch (status) {
+    case "pass":
+      return "bg-[#4CAF50]"; // Green for pass
+    case "risky":
+      return "bg-[#C8698A]"; // Original risky color
+    case "error":
+      return "bg-[#e50b57]"; // Red for error
+    case "unknown":
+      return "bg-[#9d918e]"; // Gray for unknown
+    default:
+      return "bg-gray-400";
+  }
+};
+
+const getGridItemText = (status: string) => {
+  switch (status) {
+    case "pass":
+      return "尚未發現風險";
+    case "risky":
+      return "疑似可疑內容";
+    case "error":
+      return "檢測失敗";
+    case "unknown":
+      return "狀態未知";
+    default:
+      return "未知";
+  }
+};
+
+const handleReport = (item: HistoryPageItem) => {
   const textService = item.services.find((s) => s.name === "文字詐騙檢測服務");
   const riskyServices = item.services
-    .filter((s) => s.result === "risky")
+    .filter((s) => s.status === "risky") // Use status here
     .map((s) => `「${s.name}」`)
     .join("、");
 
   const reportText =
     `影片來源：${item.source || "使用者上傳"}\n` +
-    (item.url
-      ? `影片連結：${item.url}\n`
-      : "") +
+    (item.url ? `影片連結：${item.url}\n` : "") +
     `檢測時間：${new Date(item.checkedAt).toLocaleString()}\n` +
     `檢測結果：\n` +
     `影片語音內容：${textService?.details?.text || ""}\n` +
@@ -247,73 +309,121 @@ const fetchHistory = async () => {
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
     const { data: storedData, status, message } = await response.json();
-    if (!storedData || storedData?.length === 0) {
-      errorMessage.value = "沒有檢測記錄";
-      return;
-    }
-    const filteredData = storedData
+
+    const filteredData = ((storedData as CheckResult[]) || [])
       .filter((item) =>
         item.services.some((service) => service.result === "risky")
       )
-      .sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at));
+      .sort(
+        (a, b) =>
+          new Date(b.checked_at).getTime() - new Date(a.checked_at).getTime()
+      );
 
-    if (Array.isArray(filteredData)) {
-      items.value = filteredData.map((item) => ({
-        id: item.id,
-        videoUrl: item.video_path,
-        source: item.source || "使用者上傳",
-        url: item.url,
-        services: item.services.map((service) => ({
-          name: service.name,
-          result: service.result,
-          details: JSON.parse(service.details || "{}"),
-        })),
-        checkedAt: item.checked_at || "",
-      }));
+    if (filteredData.length === 0) {
+      items.value = [];
+      toast.info("沒有檢測到任何風險的歷史紀錄");
+      return;
     }
+
+    items.value = filteredData.map((item) => ({
+      id: item.id,
+      videoUrl: item.video_path,
+      source: item.source || "使用者上傳",
+      url: item.url,
+      services: item.services.map((service) => ({
+        name: service.name,
+        result: service.result,
+        status: mapResultToStatus(service.result), // Map result to status
+        details: JSON.parse(service.details || "{}"),
+      })),
+      checkedAt: item.checked_at || "",
+    }));
   } catch (error) {
-    console.error("Fetch Error:", error);
-    errorMessage.value = "獲取資料失敗，請稍後重試";
+    toast.error("獲取資料失敗，請稍後重試");
+    items.value = [];
   }
 };
 
-const showDetails = (item) => {
+const showDetails = async (item: HistoryPageItem) => {
+  // Make async
   currentItem.value = item;
-  showModal.value = true;
   gridItems.value = item.services.map((service) => ({
     title: service.name,
-    value: service.result === "risky" ? "risky" : "pass",
+    status: service.status,
   }));
-  setTimeout(renderChart, 300);
+  showModal.value = true;
+  await nextTick();
+  renderChart();
 };
 
 const renderChart = () => {
-  const ctx = document.getElementById("myChartHistory")?.getContext("2d");
+  const ctx = (
+    document.getElementById("myChartHistory") as HTMLCanvasElement
+  )?.getContext("2d");
   if (!ctx) return;
 
-  const riskyCount = gridItems.value.filter(
-    (item) => item.value === "risky"
-  ).length;
-  const passCount = gridItems.value.filter(
-    (item) => item.value === "pass"
-  ).length;
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
 
-  new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      datasets: [
-        {
-          label: "檢測結果",
-          data: [passCount, riskyCount],
-          backgroundColor: ["#56af54", "#C8698A"],
-          borderColor: "rgba(75, 192, 192, 1)",
-          borderWidth: 0.2,
-        },
-      ],
+  const statusCounts = gridItems.value.reduce(
+    (acc, item) => {
+      acc[item.status] = (acc[item.status] || 0) + 1;
+      return acc;
     },
+    { pass: 0, risky: 0, error: 0, unknown: 0 }
+  );
+
+  const chartData = {
+    labels: ["尚未發現風險", "疑似可疑內容", "檢測失敗", "未知"], // Corresponds to pass, risky, error, unknown
+    datasets: [
+      {
+        label: "檢測結果",
+        data: [
+          statusCounts.pass,
+          statusCounts.risky,
+          statusCounts.error,
+          statusCounts.unknown,
+        ],
+        backgroundColor: [
+          "#4CAF50", // pass
+          "#C8698A", // risky
+          "#e50b57", // error
+          "#9d918e", // unknown
+        ],
+        borderColor: "rgba(255, 255, 255, 0.5)", // Add border for better visibility
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  chartInstance = new Chart(ctx, {
+    type: "doughnut",
+    data: chartData,
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function (context) {
+              const count = context.parsed;
+              return `${context.label}: ${count}`;
+            },
+          },
+        },
+        legend: {
+          position: "top",
+          labels: {
+            filter: (legendItem, chartData) => {
+              const dataset = chartData.datasets[0];
+              const dataValue = dataset.data[Number(legendItem?.index)];
+              return Number(dataValue) > 0;
+            },
+          },
+        },
+      },
     },
   });
 };
@@ -325,5 +435,11 @@ onMounted(() => {
 
 const closePopup = () => {
   showModal.value = false;
+  currentItem.value = null; // Clear current item
+  gridItems.value = []; // Clear grid items
+  if (chartInstance) {
+    chartInstance.destroy(); // Clean up chart instance
+    chartInstance = null;
+  }
 };
 </script>
