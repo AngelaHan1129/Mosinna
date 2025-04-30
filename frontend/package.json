@@ -18,7 +18,8 @@
     "vite": "^5.4.10",
     "vue": "^3.2.13",
     "vue-router": "^4.4.5",
-    "vue3-menus": "^1.1.2"
+    "vue3-menus": "^1.1.2",
+    "vue3-toastify": "^0.2.8"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.4.0",

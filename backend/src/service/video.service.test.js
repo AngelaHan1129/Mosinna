@@ -26,9 +26,17 @@ describe(`單元測試 - 影片儲存`, () => {
         jest.spyOn(videoRepository, 'saveVideo').mockResolvedValueOnce({
             id: videoId,
         })
-        const result = await videoService.saveVideo(payload.videoData)
+        const result = await videoService.saveVideo(
+            payload.videoData,
+            '使用者上傳',
+            'http://example.com',
+        )
         // then
-        expect(videoRepository.saveVideo).toBeCalledWith(payload.videoData)
+        expect(videoRepository.saveVideo).toBeCalledWith(
+            payload.videoData,
+            '使用者上傳',
+            'http://example.com',
+        )
         expect(result.id).toBe(videoId)
     })
 })

@@ -15,7 +15,7 @@
 
       <!-- 📈 進度條 -->
       <div
-        v-if="progress > 0"
+        v-if="progress > -1"
         class="mt-4 flex items-center justify-center gap-4 px-4 md:px-8"
       >
         <p class="text-xl text-[#594462]">進度：{{ progress }}%</p>
@@ -130,19 +130,41 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { useUploadStore } from "@/stores/useUploadStore";
+import { VideoCheckFinishedData } from "@/types/event";
 
 const uploadStore = useUploadStore();
 
 const showModal = ref(false);
-const progress = ref(0);
+const progress = ref(uploadStore.events.find(e => e.type === "AllCheckFinished") ? -1 : 0);
 const statusMsg = ref("");
 
 const shareToThreads = () => {
-  const text = encodeURIComponent(
-    "🎧 影片分析結果：尚未發現風險，背景雜訊有些許異常。"
+  const riskyResults = uploadStore.events.filter(
+    (e) => e.type === "VideoCheckFinished" && e.data.result === "risky"
   );
-  const url = encodeURIComponent(window.location.href);
-  const shareUrl = `https://www.threads.net/intent/post?text=${text}%20${url}`;
+  
+  const checkResultId = uploadStore.events.find(
+    (e) => e.type === "CheckResultSaved"
+  )?.data.checkResultId;
+  const url = `${import.meta.env.VITE_FRONTEND_HOST}/UserHistory?id=${checkResultId}`;
+
+  const text = encodeURIComponent(
+    `要小心！我在這裡上傳的影片經過系統檢測，結果如下：\n` +
+      riskyResults
+        .map((e) => {
+          const data = e.data as VideoCheckFinishedData;
+          const result = data.name.includes("Deepfake")
+            ? "檢測出 AI 生成"
+            : data.name === "文字詐騙檢測服務"
+            ? "影片內容疑似詐騙"
+            : "疑似可疑內容";
+          return `${data.name}：${result}`;
+        })
+        .join(",\n") +
+      `\n\n魔聲仔檢測結果報告：${url}` +
+      `\n\n#Deepfake`
+  );
+  const shareUrl = `https://www.threads.net/intent/post?text=${text}`;
   window.open(shareUrl, "_blank");
 };
 

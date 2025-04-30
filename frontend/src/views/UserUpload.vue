@@ -13,13 +13,13 @@
       >
         <!-- 🔗 URL 輸入區 -->
         <p class="text-2xl font-bold m-0 py-4 px-4 text-left text-[#f1ecff]">
-          輸入連結
+          輸入影片連結
         </p>
         <div class="flex flex-col sm:flex-row gap-4">
           <input
             v-model="urlInput"
             type="url"
-            placeholder="請輸入影片連結"
+            placeholder="請輸入影片連結(僅支援 Youtube)"
             class="flex-1 rounded-[10px] border-none bg-[rgba(255,255,255,0.729)] p-3 text-base outline-none shadow-[0_-2px_10px_rgba(0,0,0,0.1)]"
           />
           <button class="btn w-full sm:w-auto" @click="submitUrl">
@@ -59,21 +59,6 @@
           </button>
         </div>
 
-        <!-- 🕐 狀態訊息 -->
-        <div v-if="statusMsg" class="text-center mt-4 text-[#f1ecff] text-sm">
-          {{ statusMsg }}
-        </div>
-
-        <!-- 📈 進度條 -->
-        <div v-if="progress > 0" class="mt-4">
-          <div class="bg-gray-200 h-4 rounded overflow-hidden">
-            <div
-              class="bg-blue-500 h-4 transition-all"
-              :style="{ width: progress + '%' }"
-            />
-          </div>
-          <p class="text-sm mt-1">進度：{{ progress }}%</p>
-        </div>
       </div>
     </div>
   </div>
@@ -83,16 +68,13 @@
 import { ref, watch } from "vue";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { useRouter } from "vue-router"; // ✨新增這行
+import { toast } from "vue3-toastify";
 
 const router = useRouter(); // ✨新增這行
 const uploadStore = useUploadStore();
 
 const file = ref<File>();
-const messages = ref([]);
-const sseRunning = ref(false);
-const progress = ref(0);
 const urlInput = ref("");
-const statusMsg = ref("");
 const fileInput = ref<HTMLInputElement>();
 
 const triggerFileUpload = () => {
@@ -120,7 +102,7 @@ const handleFileChange = (event: Event) => {
 
 const submitUrl = () => {
   if (!urlInput.value || !urlInput.value.startsWith("http")) {
-    statusMsg.value = "⚠️ 請輸入正確的影片網址";
+    toast.error("請輸入正確的影片網址");
     return;
   }
   uploadStore.uploadUrl(urlInput.value);
@@ -130,7 +112,7 @@ watch(
   () => uploadStore.events,
   (newEvents) => {
     if (newEvents.find((x) => x.type === "VideoUploaded")) {
-      alert("上傳完成！即將進入分析頁面");
+      toast.success("上傳完成！即將進入分析頁面");
       router.push("/UserReport");
     }
   },

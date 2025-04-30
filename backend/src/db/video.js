@@ -25,6 +25,14 @@ export default (sequelize) => {
                 type: DataTypes.STRING,
                 allowNull: false,
             },
+            url: {
+                type: DataTypes.STRING(1024),
+                allowNull: true,
+            },
+            source: {
+                type: DataTypes.STRING,
+                allowNull: true,
+            },
         },
         {
             sequelize, // 傳入 sequelize 實例而不是 db

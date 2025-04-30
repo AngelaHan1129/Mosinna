@@ -42,10 +42,13 @@ export class CheckController {
             })
 
             // store video
-            const video = await this.videoService.saveVideo(videoData)
+            const video = await this.videoService.saveVideo(
+                videoData,
+                '使用者上傳',
+            )
 
             // store check result
-            await this.checkService.saveCheckResult({
+            const saved = await this.checkService.saveCheckResult({
                 video_id: video?.id,
                 source: '使用者上傳',
                 ip: req.ip,
@@ -56,6 +59,9 @@ export class CheckController {
                         result: x.result,
                     }
                 }),
+            })
+            this.checkService.sendSSE(res, 'CheckResultSaved', {
+                checkResultId: saved[0].video_id,
             })
             res.end()
         } catch (error) {
@@ -94,10 +100,14 @@ export class CheckController {
             })
 
             // store video
-            const video = await this.videoService.saveVideo(videoData)
+            const video = await this.videoService.saveVideo(
+                videoData,
+                'Youtube',
+                url,
+            )
 
             // store check result
-            await this.checkService.saveCheckResult({
+            const saved = await this.checkService.saveCheckResult({
                 video_id: video?.id,
                 source: 'Youtube',
                 ip: req.ip,
@@ -110,6 +120,9 @@ export class CheckController {
                 }),
             })
 
+            this.checkService.sendSSE(res, 'CheckResultSaved', {
+                checkResultId: saved[0].video_id,
+            })
             res.end()
         } catch (error) {
             console.error(error)

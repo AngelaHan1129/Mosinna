@@ -72,7 +72,7 @@
               'px-2 py-1.5 text-sm rounded transition-colors',
               currentPage === page
                 ? 'bg-gray-50 text-stone-900'
-                : 'bg-gray-200 text-stone-900 hover:bg-gray-100'
+                : 'bg-gray-200 text-stone-900 hover:bg-gray-100',
             ]"
           >
             {{ page }}
@@ -138,7 +138,7 @@
                     gridItem.value === 'risky' ? 'bg-[#C8698A]' : 'bg-[#56af54]'
                   "
                 >
-                  {{ gridItem.value === 'risky' ? '可疑內容' : '尚未發現風險' }}
+                  {{ gridItem.value === "risky" ? "可疑內容" : "尚未發現風險" }}
                 </div>
               </div>
             </div>
@@ -153,6 +153,20 @@
                 controls
                 class="absolute inset-0 w-full h-full object-cover rounded-lg"
               ></video>
+            </div>
+            <!-- 影片來源 -->
+            <div class="mt-2 text-sm text-gray-700">
+              影片來源：{{ currentItem?.source }}
+            </div>
+            <!-- 若為 Youtube 顯示連結 -->
+            <div
+              v-if="currentItem?.source !== '使用者上傳'"
+              class="mt-2 text-sm text-gray-700"
+            >
+              影片連結位址：
+              <a :href="currentItem.url" target="_blank" class="underline text-blue-700">
+                {{ currentItem.url }}
+              </a>
             </div>
           </div>
 
@@ -179,177 +193,179 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import Chart from 'chart.js/auto'
-import ShareResult from '../components/ShareResult.vue'
+import { ref, computed, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import Chart from "chart.js/auto";
+import ShareResult from "../components/ShareResult.vue";
 
 // State
-const items = ref([])
-const gridItems = ref([])
-const showModal = ref(false)
-const currentItem = ref(null)
-const showModalshare = ref(false)
-const detailsText = ref('')
-const errorMessage = ref('')
-const currentPage = ref(1)
-const route = useRoute()
+const items = ref([]);
+const gridItems = ref([]);
+const showModal = ref(false);
+const currentItem = ref(null);
+const showModalshare = ref(false);
+const detailsText = ref("");
+const errorMessage = ref("");
+const currentPage = ref(1);
+const route = useRoute();
 
 // Constants
-const ITEMS_PER_PAGE = 6
-const API_URL = `${import.meta.env.VITE_BACKEND_HOST}/api/history`
+const ITEMS_PER_PAGE = 6;
+const API_URL = `${import.meta.env.VITE_BACKEND_HOST}/api/history`;
 
 // Computed
 const totalPages = computed(() =>
   Math.ceil(items.value.length / ITEMS_PER_PAGE)
-)
+);
 const paginatedItems = computed(() => {
-  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
-  const end = start + ITEMS_PER_PAGE
-  return items.value.slice(start, end)
-})
+  const start = (currentPage.value - 1) * ITEMS_PER_PAGE;
+  const end = start + ITEMS_PER_PAGE;
+  return items.value.slice(start, end);
+});
 
 const displayedPages = computed(() => {
-  const maxButtons = 5
-  const halfButtons = Math.floor(maxButtons / 2)
-  let startPage = Math.max(currentPage.value - halfButtons, 1)
-  let endPage = Math.min(startPage + maxButtons - 1, totalPages.value)
+  const maxButtons = 5;
+  const halfButtons = Math.floor(maxButtons / 2);
+  let startPage = Math.max(currentPage.value - halfButtons, 1);
+  let endPage = Math.min(startPage + maxButtons - 1, totalPages.value);
 
   if (endPage - startPage + 1 < maxButtons) {
-    startPage = Math.max(endPage - maxButtons + 1, 1)
+    startPage = Math.max(endPage - maxButtons + 1, 1);
   }
 
   return Array.from(
     { length: Math.min(maxButtons, endPage - startPage + 1) },
     (_, i) => startPage + i
-  )
-})
+  );
+});
 
 // Methods
 const changePage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
+    currentPage.value = page;
   }
-}
+};
 
 const fetchHistory = async () => {
   try {
-    const response = await fetch(API_URL)
-    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`)
+    const response = await fetch(API_URL);
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
-    const { data: storedData, status, message } = await response.json()
+    const { data: storedData, status, message } = await response.json();
 
     if (Array.isArray(storedData)) {
       items.value = storedData.map((item) => ({
         id: item.id,
-        videoUrl: item.video_path || '',
         name: `影片ID: ${item.id}`,
+        videoUrl: item.video_path,
+        url: item.url,
+        source: item.source || "使用者上傳",
         services: item.services.map((service) => ({
-          name: service.name || '未知服務',
-          result: service.result || '未知',
-          details: JSON.parse(service.details || '{}')
+          name: service.name,
+          result: service.result,
+          details: JSON.parse(service.details || "{}"),
         })),
-        checkedAt: item.checked_at || ''
-      }))
+        checkedAt: item.checked_at || "",
+      }));
 
       const firstServiceWithConfidence = storedData
         .flatMap((item) => item.services)
-        .find((service) => service.details?.confidence)
+        .find((service) => service.details?.confidence);
 
       if (firstServiceWithConfidence) {
-        detailsText.value = `服務: ${firstServiceWithConfidence.name}, 信心度: ${firstServiceWithConfidence.details.confidence}`
+        detailsText.value = `服務: ${firstServiceWithConfidence.name}, 信心度: ${firstServiceWithConfidence.details.confidence}`;
       }
 
       // 檢查 URL 中是否有 id 參數
-      const historyId = route.query.id
+      const historyId = route.query.id;
       if (historyId) {
-        const item = items.value.find((video) => video.id === historyId)
-        if (item) showPopup(item)
+        const item = items.value.find((video) => video.id === historyId);
+        if (item) showPopup(item);
       }
     }
   } catch (error) {
-    console.error('Fetch Error:', error)
-    errorMessage.value = '獲取資料失敗，請稍後重試'
+    console.error("Fetch Error:", error);
+    errorMessage.value = "獲取資料失敗，請稍後重試";
   }
-}
+};
 
 const showPopup = (item) => {
-  currentItem.value = item
-  showModal.value = true
+  currentItem.value = item;
+  showModal.value = true;
   gridItems.value = item.services.map((service) => ({
     title: service.name,
-    value: service.result === 'risky' ? 'risky' : 'pass'
-  }))
+    value: service.result === "risky" ? "risky" : "pass",
+  }));
   // 設置分享文字
   const riskyService = gridItems.value
-    ?.filter((item) => item.value === 'risky')
-    .map((item) => `「${item.title}」`)
+    ?.filter((item) => item.value === "risky")
+    .map((item) => `「${item.title}」`);
   if (riskyService.length > 0) {
     detailsText.value = `要小心！我在魔聲仔中的${riskyService.join(
-      '、'
-    )}中檢測到可疑內容，建議大家小心使用。`
+      "、"
+    )}中檢測到可疑內容，建議大家小心使用。`;
   }
-  setTimeout(renderChart, 300)
-}
+  setTimeout(renderChart, 300);
+};
 
 const renderChart = () => {
-  const ctx = document.getElementById('myChartHistory')?.getContext('2d')
-  if (!ctx) return
+  const ctx = document.getElementById("myChartHistory")?.getContext("2d");
+  if (!ctx) return;
 
   const riskyCount = gridItems.value.filter(
-    (item) => item.value === 'risky'
-  ).length
+    (item) => item.value === "risky"
+  ).length;
   const passCount = gridItems.value.filter(
-    (item) => item.value === 'pass'
-  ).length
+    (item) => item.value === "pass"
+  ).length;
 
   new Chart(ctx, {
-    type: 'doughnut',
+    type: "doughnut",
     data: {
       datasets: [
         {
-          label: '檢測結果',
+          label: "檢測結果",
           data: [passCount, riskyCount],
-          backgroundColor: ['#56af54', '#C8698A'],
-          borderColor: 'rgba(75, 192, 192, 1)',
-          borderWidth: 0.2
-        }
-      ]
+          backgroundColor: ["#56af54", "#C8698A"],
+          borderColor: "rgba(75, 192, 192, 1)",
+          borderWidth: 0.2,
+        },
+      ],
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false
-    }
-  })
-}
+      maintainAspectRatio: false,
+    },
+  });
+};
 
 const shareToThreads = () => {
-  const context = detailsText.value
-  const shareId = currentItem.value?.id
+  const context = detailsText.value;
+  const shareId = currentItem.value?.id;
   const url = `魔聲仔檢測結果：\n${
     import.meta.env.VITE_FRONTEND_HOST
-  }/UserHistory?id=${shareId}`
-  const tag = '#魔聲仔'
+  }/UserHistory?id=${shareId}`;
+  const tag = "#魔聲仔";
   const shareUrl = `https://threads.net/intent/post?text=${encodeURIComponent(
     `${context}\n\n${url}\n${tag}`
-  )}`
-  window.open(shareUrl, '_blank')
-}
+  )}`;
+  window.open(shareUrl, "_blank");
+};
 
 // Lifecycle
 onMounted(() => {
-  fetchHistory()
-})
+  fetchHistory();
+});
 
 const closePopup = () => {
-  showModal.value = false
-}
+  showModal.value = false;
+};
 
 const showPopupshare = () => {
-  showModalshare.value = true
-}
+  showModalshare.value = true;
+};
 
 const closePopupshare = () => {
-  showModalshare.value = false
-}
+  showModalshare.value = false;
+};
 </script>

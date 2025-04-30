@@ -1,16 +1,29 @@
 // main.ts
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'  // 引入 Pinia
-import App from './App.vue'
-import router from './router'
-import './index.css'
+import { createApp } from "vue";
+import { createPinia } from "pinia"; // 引入 Pinia
+import App from "./App.vue";
+import router from "./router";
+import "./index.css";
+import Vue3Toastify, { type ToastContainerOptions } from "vue3-toastify";
+import "vue3-toastify/dist/index.css";
 
-// 創建 Pinia 實例
-const app = createApp(App)
-const pinia = createPinia()
+const app = createApp(App);
+const pinia = createPinia();
 
-// 註冊 Pinia 並掛載 app
-app.use(pinia)
-app.use(router)
+app.use(pinia);
+app.use(router);
+app.use(Vue3Toastify, {
+  theme: "light",
+  position: "bottom-right",
+  autoClose: 3000,
+  clearOnUrlChange: false,
+  newestOnTop: true,
+  multiple: true,
+  limit: 3,
+  pauseOnFocusLoss: true,
+  pauseOnHover: true,
+  closeOnClick: true,
+  // dangerouslyHTMLString: true,
+} as ToastContainerOptions);
 
-app.mount('#app')
+app.mount("#app");

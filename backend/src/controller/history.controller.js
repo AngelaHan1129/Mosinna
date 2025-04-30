@@ -44,6 +44,8 @@ export class HistoryController {
  * @typedef {Object} CheckHistoryPresenter
  * @property {string} id
  * @property {string} video_path
+ * @property {string} source
+ * @property {string | null} url
  * @property {ServiceData[]} services
  * @property {string} checked_at
  *
@@ -61,7 +63,8 @@ function toCheckHistoryPresenter(params) {
     return Object.keys(grouped).map((videoId) => {
         return {
             id: videoId,
-            source: grouped[videoId][0].source,
+            source: grouped[videoId][0].video?.source,
+            url: grouped[videoId][0].video?.url,
             // ip: grouped[videoId][0].ip,
             video_path: `${resourceHost}/${grouped[videoId][0].video?.video_path}`,
             services: grouped[videoId].map((history) => {

@@ -2,6 +2,7 @@ export type SSEEventType =
   | "VideoUploaded"
   | "VideoCheckFinished"
   | "AllCheckFinished"
+  | "CheckResultSaved"
   | "ValidationError";
 
 export type SSEEventDataMap = {
@@ -13,6 +14,8 @@ export type SSEEventDataMap = {
     ? ValidationError
     : key extends "AllCheckFinished"
     ? AllCheckFinishedData
+    : key extends "CheckResultSaved"
+    ? CheckResultSavedData
     : never;
 };
 
@@ -103,5 +106,18 @@ export class AllCheckFinishedEvent extends SSEEvent<
 > {
   constructor(message: string) {
     super("AllCheckFinished", { message });
+  }
+}
+
+export interface CheckResultSavedData {
+  checkResultId: string;
+}
+
+export class CheckResultSavedEvent extends SSEEvent<
+  "CheckResultSaved",
+  CheckResultSavedData
+> {
+  constructor(checkResultId: string) {
+    super("CheckResultSaved", { checkResultId });
   }
 }

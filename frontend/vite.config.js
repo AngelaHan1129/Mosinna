@@ -5,7 +5,7 @@ const path = require('path')
 
 // 👇 加上 dev server 的 proxy 設定
 export default defineConfig({
-  plugins: [vue(),VitePluginVueDevTools()],
+  plugins: [vue() ,VitePluginVueDevTools()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

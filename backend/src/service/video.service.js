@@ -7,10 +7,12 @@ export class VideoService {
     /**
      *
      * @param {string} dataUrl
+     * @param {"Youtube" | "使用者上傳"} sourceType
+     * @param {string | null} url
      * @returns {Promise<{id: string, video_path: string}>}
      */
-    async saveVideo(dataUrl) {
-        const video = await videoRepository.saveVideo(dataUrl)
+    async saveVideo(dataUrl, sourceType, url = null) {
+        const video = await videoRepository.saveVideo(dataUrl, sourceType, url)
         return video
     }
 

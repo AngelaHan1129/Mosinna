@@ -5,10 +5,12 @@ import fs from 'fs'
 export class VideoRepository {
     /**
      * @param {String} dataUrl
+     * @param {String} sourceType
+     * @param {String | null} url
      *
      * @returns {Promise<Video>}
      */
-    async saveVideo(dataUrl) {
+    async saveVideo(dataUrl, sourceType, url = null) {
         const arr = dataUrl.split(',')
         //提取出 MIME 類型，例如 video/mp4
         const mime = arr[0].match(/:(.*?);/)[1]
@@ -36,6 +38,8 @@ export class VideoRepository {
         return (
             await Video.create({
                 video_path: fileName,
+                source: sourceType,
+                url,
             })
         ).dataValues
     }
