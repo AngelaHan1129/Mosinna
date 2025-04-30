@@ -1,8 +1,12 @@
 <template>
   <div class="min-h-[90vh] flex justify-center items-center py-10">
-    <div class="w-11/12 md:w-4/5 max-w-[900px] bg-[hsla(256,100%,96%,0.9)] rounded-lg shadow-lg">
+    <div
+      class="w-11/12 md:w-4/5 max-w-[900px] bg-[hsla(256,100%,96%,0.9)] rounded-lg shadow-lg"
+    >
       <div class="bg-[#6b5276] rounded-t-lg">
-        <p class="m-0 py-3 md:py-4 px-4 md:px-6 text-left text-[#f1ecff] text-xl md:text-2xl">
+        <p
+          class="m-0 py-3 md:py-4 px-4 md:px-6 text-left text-[#f1ecff] text-xl md:text-2xl"
+        >
           結果分析
         </p>
       </div>
@@ -10,7 +14,10 @@
       <hr class="border-t-2 border-gray-300" />
 
       <!-- 📈 進度條 -->
-      <div v-if="progress > 0" class="mt-4 flex items-center justify-center gap-4">
+      <div
+        v-if="progress > 0"
+        class="mt-4 flex items-center justify-center gap-4 px-4 md:px-8"
+      >
         <p class="text-xl text-[#594462]">進度：{{ progress }}%</p>
         <div class="bg-[#e0d7ec] h-5 w-80 rounded overflow-hidden shadow-inner">
           <div
@@ -30,16 +37,18 @@
         <div
           v-for="(card, index) in cards"
           :key="index"
-          class="relative w-[200px] h-[150px] md:h-[260px] bg-[#D1C4E9] rounded-lg shadow-lg flex justify-center items-start"
+          class="relative w-[260px] h-[200px] md:h-[260px] bg-[#D1C4E9] rounded-lg shadow-lg flex flex-col justify-start items-center"
         >
-          <span class="text-6xl md:text-8xl m-4">{{ card.icon }}</span>
+          <div class="pt-4 pb-2 flex-none">
+            <span class="text-6xl md:text-8xl">{{ card.icon }}</span>
+          </div>
 
           <div
             :class="{
               'bg-[#4CAF50]': card.status === 'safe',
               'bg-[#C8698A]': card.status === 'risky',
             }"
-            class="absolute bottom-0 w-full h-[130px] md:h-[150px] rounded-lg flex flex-col justify-center items-center p-4 space-y-2"
+            class="absolute bottom-0 w-full h-[110px] md:h-[140px] rounded-lg flex flex-col justify-center items-center p-4 space-y-2"
           >
             <div class="text-white text-base font-semibold">
               {{ card.title }}
@@ -48,24 +57,54 @@
               @click="showModal = true"
               class="flex items-center gap-2 text-white text-sm bg-[#6b5276] px-4 py-1 rounded-full hover:bg-[#513e59] transition"
             >
-              <svg v-if="card.status === 'safe'" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.25 9.75h.008v.008h-.008V9.75zM12 12v3.75m0 3.75a9 9 0 100-18 9 9 0 000 18z" />
+              <svg
+                v-if="card.status === 'safe'"
+                class="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M11.25 9.75h.008v.008h-.008V9.75zM12 12v3.75m0 3.75a9 9 0 100-18 9 9 0 000 18z"
+                />
               </svg>
-              <svg v-if="card.status === 'risky'" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0h-6" />
+              <svg
+                v-if="card.status === 'risky'"
+                class="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="1.5"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0h-6"
+                />
               </svg>
               {{ card.buttonText }}
             </button>
           </div>
         </div>
       </div>
-      
+
       <!-- ✅ Modal -->
-      <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-gray-800">
+      <div
+        v-if="showModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      >
+        <div
+          class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-gray-800"
+        >
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-lg font-semibold">風險狀態說明</h2>
-            <button @click="showModal = false" class="text-gray-500 hover:text-gray-700">
+            <button
+              @click="showModal = false"
+              class="text-gray-500 hover:text-gray-700"
+            >
               ✕
             </button>
           </div>
@@ -99,7 +138,9 @@ const progress = ref(0);
 const statusMsg = ref("");
 
 const shareToThreads = () => {
-  const text = encodeURIComponent("🎧 影片分析結果：尚未發現風險，背景雜訊有些許異常。");
+  const text = encodeURIComponent(
+    "🎧 影片分析結果：尚未發現風險，背景雜訊有些許異常。"
+  );
   const url = encodeURIComponent(window.location.href);
   const shareUrl = `https://www.threads.net/intent/post?text=${text}%20${url}`;
   window.open(shareUrl, "_blank");
