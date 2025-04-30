@@ -72,6 +72,8 @@ export class CheckService {
                         process.env.SSE_TEST === 'true' &&
                         process.env.NODE_ENV !== 'test'
                     ) {
+                        // throw new Error('SSE_TEST is enabled')
+
                         // Default simulation: 5-10 seconds
                         const mockResponseTime =
                             5 + Math.floor(Math.random() * 6)
@@ -107,7 +109,16 @@ export class CheckService {
                     return payload
                 } catch (error) {
                     console.log(error.message)
-                    return null
+                    const payload = {
+                        id: service.id,
+                        name: service.name,
+                        result: 'error',
+                        details: {
+                            message: `檢測服務異常: 可能原因(影片過長/過短；沒有聲音；沒有畫面；服務異常等)`,
+                        },
+                    }
+                    this.sendSSE(res, 'VideoCheckFinished', payload)
+                    return payload
                 }
             }),
         )

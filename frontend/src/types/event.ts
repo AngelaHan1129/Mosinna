@@ -56,7 +56,7 @@ export class VideoUploadedEvent extends SSEEvent<
 export interface VideoCheckFinishedData {
   id: string;
   name: string;
-  result: "pass" | "risky";
+  result: "pass" | "risky" | "error";
   details:
     | {
         [key: string]: any;
@@ -71,7 +71,7 @@ export class VideoCheckFinishedEvent extends SSEEvent<
   constructor(
     id: string,
     name: string,
-    result: "pass" | "risky",
+    result: "pass" | "risky" | "error",
     details: { [key: string]: any } | string
   ) {
     super("VideoCheckFinished", {
