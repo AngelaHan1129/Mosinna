@@ -5,4 +5,9 @@ const router = express.Router()
 
 router.get('', historyController.getCheckHistory.bind(historyController))
 
+router.get(
+    '/:videoId',
+    historyController.getCheckHistoryByVideoId.bind(historyController),
+)
+
 export default router

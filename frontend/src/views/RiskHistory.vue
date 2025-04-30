@@ -258,7 +258,7 @@ const getGridItemClass = (status: string) => {
     case "risky":
       return "bg-[#C8698A]"; // Original risky color
     case "error":
-      return "bg-[#e50b57]"; // Red for error
+      return "bg-[#e3a619]"; // Red for error
     case "unknown":
       return "bg-[#9d918e]"; // Gray for unknown
     default:
@@ -389,7 +389,7 @@ const renderChart = () => {
         backgroundColor: [
           "#4CAF50", // pass
           "#C8698A", // risky
-          "#e50b57", // error
+          "#e3a619", // error
           "#9d918e", // unknown
         ],
         borderColor: "rgba(255, 255, 255, 0.5)", // Add border for better visibility

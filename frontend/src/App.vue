@@ -77,7 +77,7 @@ const isSidebarVisible = ref(false)
 const navLinks = [
   { path: '/', text: '上傳影片' },
   { path: '/UserReport', text: '結果分析' },
-  { path: '/UserHistory', text: '歷史紀錄' }
+  // { path: '/UserHistory', text: '歷史紀錄' }
 ]
 
 const toggleSidebar = () => {

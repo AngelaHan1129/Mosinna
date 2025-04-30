@@ -45,9 +45,9 @@
 
           <div
             :class="{
-              'bg-[#4CAF50]': card.status === 'safe',
+              'bg-[#4CAF50]': card.status === 'pass',
               'bg-[#C8698A]': card.status === 'risky',
-              'bg-[#e50b57]': card.status === 'error',
+              'bg-[#e3a619]': card.status === 'error',
               'bg-[#9d918e]': card.status === 'unknown',
             }"
             class="absolute bottom-0 w-full h-[110px] md:h-[140px] rounded-lg flex flex-col justify-center items-center p-4 space-y-2"
@@ -60,7 +60,7 @@
               class="flex items-center gap-2 text-white text-sm bg-[#6b5276] px-4 py-1 rounded-full hover:bg-[#513e59] transition"
             >
               <svg
-                v-if="card.status === 'safe'"
+                v-if="card.status === 'pass'"
                 class="w-5 h-5"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -121,6 +121,37 @@
         </div>
       </div>
 
+      <!-- Video Section -->
+      <div class="mt-6 sm:mt-8 mx-auto px-12 w-full">
+        <div class="relative w-full pt-[56.25%]">
+          <video
+            v-if="sourceType === '使用者上傳' && url"
+            :src="url"
+            controls
+            class="absolute inset-0 w-full h-full object-cover rounded-lg"
+          ></video>
+          <YoutubeEmbed
+            v-if="sourceType === 'Youtube' && url"
+            class="absolute inset-0 w-full h-full object-cover rounded-lg"
+            :url="url"
+          />
+        </div>
+        <!-- 影片來源 -->
+        <div class="mt-2 text-sm text-gray-700">影片來源：{{ sourceType }}</div>
+        <!-- 若為 Youtube 顯示連結 -->
+        <div
+          v-if="sourceType !== '使用者上傳'"
+          class="mt-2 text-sm text-gray-700"
+        >
+          影片連結位址：<a
+            :href="url || '#'"
+            target="_blank"
+            class="underline text-blue-700"
+            >{{ url }}</a
+          >
+        </div>
+      </div>
+
       <!-- ✅ Modal -->
       <div
         v-if="showModal"
@@ -145,43 +176,98 @@
       </div>
 
       <!-- ✅ 分享按鈕 -->
-      <div class="text-center mt-4 sm:mt-6">
-        <button
-          @click="shareToThreads"
-          class="px-4 sm:px-6 py-1.5 sm:py-2 bg-pink-500 text-white text-sm sm:text-base rounded hover:bg-pink-400 transition-colors"
+      <share-network
+        v-for="(network, index) in shareSocialLinks"
+        :key="network.network"
+        :network="network.network"
+        :title="sharingInfo.title"
+        :hashtags="sharingInfo.hashtags"
+        :url="sharingInfo.url"
+        v-slot="{ share }"
+      >
+        <div
+          class="px-4 py-2 mt-4 text-center text-white rounded-lg cursor-pointer"
+          @click="share"
+          :style="{ backgroundColor: network.color }"
         >
-          分享至 Threads
-        </button>
-      </div>
+          <i :class="network.icon"></i>
+          <span> Share to {{ network.name }}</span>
+        </div>
+      </share-network>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, watch } from "vue";
 import { useUploadStore } from "@/stores/useUploadStore";
-import { VideoCheckFinishedData } from "@/types/event";
-
-interface Card {
-  icon: string;
-  title: string;
-  buttonText: string;
-  status: "safe" | "risky" | "error" | "unknown";
-  details?: string | object | null; // Add details to the interface
-}
+import { SSEEvent, SSEEventType, VideoCheckFinishedData } from "@/types/event";
+import YoutubeEmbed from "@/components/YoutubeEmbed.vue";
+import { useRoute } from "vue-router";
+import { ShareNetwork } from "vue3-social-sharing";
 
 const uploadStore = useUploadStore();
+const route = useRoute();
 
+const checkResultId = ref(route.query?.id as string | undefined);
 const showModal = ref(false);
-const modalContent = ref(""); // Ref to store modal content
-const progress = ref(
-  uploadStore.events.find((e) => e.type === "AllCheckFinished") ? -1 : 0
-);
+const modalContent = ref("");
 const statusMsg = ref("");
+const progress = ref(-1);
+const sourceType = ref(uploadStore.videoSource);
+const url = ref(uploadStore.videoUrl);
+const cards = ref<Card[]>([]);
+const sharingInfo = ref({
+  title: "檢測結果",
+  url: `${import.meta.env.VITE_FRONTEND_HOST}/UserReport?id=${
+    checkResultId.value
+  }`,
+  hashtags: "Deepfake,AI,Cybersecurity",
+});
+
+// render progress bar
+mapProgressBarScore(uploadStore.events);
+
+const setShareInfo = () => {
+  sharingInfo.value.url = `${
+    import.meta.env.VITE_FRONTEND_HOST
+  }/UserReport?id=${checkResultId.value}`;
+  sharingInfo.value.title =
+    `我在這裡上傳的影片經過系統檢測，結果如下：\n` +
+    cards.value
+      .map((data) => {
+        const result =
+          data.status === "pass"
+            ? "尚未發現風險"
+            : data.status === "error"
+            ? "檢測過程中發生錯誤"
+            : data.status === "risky"
+            ? data.title.includes("Deepfake")
+              ? "檢測出 AI 生成"
+              : data.title === "文字詐騙檢測服務"
+              ? "影片內容疑似詐騙"
+              : "尚未發現風險"
+            : "尚未發現風險";
+        return `${data.title}：${result}`;
+      })
+      .join(",\n");
+};
+
+// Get CheckResult from backend
+if (!!checkResultId.value) {
+  renderCheckResultFromAPI();
+  setShareInfo();
+}
+// Get CheckResult from store
+else if (uploadStore.events.length > 0) {
+  checkResultId.value = uploadStore.videoId;
+  renderCheckResultFromStore();
+  setShareInfo();
+}
 
 const handleCardButtonClick = (card: Card) => {
   switch (card.status) {
-    case "safe":
+    case "pass":
       modalContent.value =
         "目前系統尚未檢測到該影片任何影、音訊偽造詐騙的風險。如有疑慮，請重新上傳或聯絡管理員。";
       break;
@@ -202,100 +288,133 @@ const handleCardButtonClick = (card: Card) => {
   showModal.value = true;
 };
 
-const shareToThreads = () => {
-  const riskyResults = uploadStore.events.filter(
-    (e) => e.type === "VideoCheckFinished" && e.data.result === "risky"
-  );
-
-  const checkResultId = uploadStore.events.find(
-    (e) => e.type === "CheckResultSaved"
-  )?.data.checkResultId;
-  const url = `${
-    import.meta.env.VITE_FRONTEND_HOST
-  }/UserHistory?id=${checkResultId}`;
-
-  const text = encodeURIComponent(
-    `要小心！我在這裡上傳的影片經過系統檢測，結果如下：\n` +
-      riskyResults
-        .map((e) => {
-          const data = e.data as VideoCheckFinishedData;
-          const result = data.name.includes("Deepfake")
-            ? "檢測出 AI 生成"
-            : data.name === "文字詐騙檢測服務"
-            ? "影片內容疑似詐騙"
-            : "疑似可疑內容";
-          return `${data.name}：${result}`;
-        })
-        .join(",\n") +
-      `\n\n魔聲仔檢測結果報告：${url}` +
-      `\n\n#Deepfake`
-  );
-  const shareUrl = `https://www.threads.net/intent/post?text=${text}`;
-  window.open(shareUrl, "_blank");
-};
-
-// 🔥 核心重點：從 uploadStore.events 自動生成 cards
-const cards = computed<Card[]>(() => {
-  return uploadStore.events
-    .filter((e) => e.type === "VideoCheckFinished")
-    .map((e) => {
-      const data = e.data as VideoCheckFinishedData; // Type assertion for clarity
-      const result = data.result;
-      const name = data.name;
-      if (result === "risky") {
-        return {
-          icon: "🤔",
-          title: name,
-          buttonText: "疑似可疑內容",
-          status: "risky",
-        };
-      } else if (result === "pass") {
-        return {
-          icon: "😊",
-          title: name,
-          buttonText: "尚未發現風險",
-          status: "safe",
-        };
-      } else if (result === "error") {
-        const detailsString =
-          typeof data.details === "object" &&
-          data.details !== null &&
-          "message" in data.details
-            ? String(data.details.message)
-            : String(data.details);
-        return {
-          icon: "🥺",
-          title: name,
-          buttonText: "查看錯誤",
-          details: detailsString || "未提供詳細錯誤資訊",
-          status: "error",
-        };
-      } else {
-        return {
-          icon: "❓",
-          title: name,
-          buttonText: "查看狀態",
-          status: "unknown",
-        };
-      }
-    });
-});
+const shareSocialLinks = [
+  {
+    network: "threads",
+    name: "Threads",
+    icon: "fab fah fa-lg fa-threads",
+    color: "#000000",
+  },
+];
 
 // 🕐 進度條邏輯（可以加強）
 watch(
   () => uploadStore.events,
   (newEvents) => {
-    if (newEvents.find((x) => x.type === "AllCheckFinished")) {
-      progress.value = 100;
-      statusMsg.value = "檢測完成";
-    } else if (newEvents.some((x) => x.type === "VideoCheckFinished")) {
-      progress.value = 70;
-      statusMsg.value = "部分檢測完成";
-    } else if (newEvents.find((x) => x.type === "VideoUploaded")) {
-      progress.value = 30;
-      statusMsg.value = "🚀 上傳成功，檢測中...";
-    }
+    mapProgressBarScore(newEvents);
+    const videoCheckFinishedEvents = newEvents.filter(
+      (e) => e.type === "VideoCheckFinished"
+    );
+    cards.value = videoCheckFinishedEvents.map((e) =>
+      mapVideoFinishEventToCard(e as SSEEvent<"VideoCheckFinished">)
+    );
+    checkResultId.value = uploadStore.videoId;
+    setShareInfo();
   },
-  { deep: true, immediate: true } // Add immediate to run on initial load
+  { deep: true } // Add immediate to run on initial load
 );
+
+interface Card {
+  icon: string;
+  title: string;
+  buttonText: string;
+  status: "pass" | "risky" | "error" | "unknown";
+  details?: string | object | null;
+}
+
+function renderCheckResultFromAPI() {
+  fetch(
+    `${import.meta.env.VITE_BACKEND_HOST}/api/history/${checkResultId.value}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        // Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    }
+  )
+    .then((response) => response.json())
+    .then((body) => {
+      const data = body.data;
+      sourceType.value = data.source;
+      url.value =
+        sourceType.value !== "使用者上傳" ? data.url : data.video_path;
+
+      cards.value = data.services.map((result: any) => {
+        return mapVideoFinishEventToCard({
+          type: "VideoCheckFinished",
+          data: {
+            name: result.name,
+            result: result.result,
+            details: JSON.parse(result.details || "{}"),
+          },
+        } as SSEEvent<"VideoCheckFinished">);
+      });
+      setShareInfo();
+    });
+}
+
+function renderCheckResultFromStore() {
+  const videoCheckFinishedEvents = uploadStore.events.filter(
+    (e) => e.type === "VideoCheckFinished"
+  );
+  cards.value = videoCheckFinishedEvents.map((e) =>
+    mapVideoFinishEventToCard(e as SSEEvent<"VideoCheckFinished">)
+  );
+}
+
+function mapVideoFinishEventToCard(e: SSEEvent<"VideoCheckFinished">) {
+  const data = e.data as VideoCheckFinishedData; // Type assertion for clarity
+  const result = data.result;
+  const name = data.name;
+  if (result === "risky") {
+    return {
+      icon: "🤔",
+      title: name,
+      buttonText: "疑似可疑內容",
+      status: "risky" as const,
+    };
+  } else if (result === "pass") {
+    return {
+      icon: "😊",
+      title: name,
+      buttonText: "尚未發現風險",
+      status: "pass" as const,
+    };
+  } else if (result === "error") {
+    const detailsString =
+      typeof data.details === "object" &&
+      data.details !== null &&
+      "message" in data.details
+        ? String(data.details.message)
+        : String(data.details);
+    return {
+      icon: "🥺",
+      title: name,
+      buttonText: "查看錯誤",
+      details: detailsString || "未提供詳細錯誤資訊",
+      status: "error" as const,
+    };
+  } else {
+    return {
+      icon: "❓",
+      title: name,
+      buttonText: "查看狀態",
+      status: "unknown" as const,
+    };
+  }
+}
+
+function mapProgressBarScore(newEvents: SSEEvent<SSEEventType>[]) {
+  if (newEvents.find((x) => x.type === "AllCheckFinished")) {
+    progress.value = 100;
+    statusMsg.value = "檢測完成";
+  } else if (newEvents.some((x) => x.type === "VideoCheckFinished")) {
+    progress.value = 70;
+    statusMsg.value = "部分檢測完成";
+  } else if (newEvents.find((x) => x.type === "VideoUploaded")) {
+    progress.value = 30;
+    statusMsg.value = "🚀 上傳成功，檢測中...";
+  }
+}
 </script>

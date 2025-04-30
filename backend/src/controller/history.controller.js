@@ -3,6 +3,7 @@ import { Video } from '../db/video'
 import { CheckResultRepository } from '../repository/checkResult.repository'
 import { HistoryService } from '../service/history.service'
 import { apiFormatter } from '../utils/api-formatter'
+import { getResourceURL } from '../utils/env'
 
 export class HistoryController {
     /**
@@ -22,6 +23,22 @@ export class HistoryController {
                 toCheckHistoryPresenter(
                     await this.historyService.getCheckHistory(),
                 ),
+            ),
+        )
+    }
+
+    /**
+     * @param {import("express").Request<{ videoId: string }>} req
+     * @param {import("express").Response} res
+     */
+    async getCheckHistoryByVideoId(req, res) {
+        return res.json(
+            apiFormatter(
+                toCheckHistoryPresenter(
+                    await this.historyService.getCheckHistoryByVideoId(
+                        req.params.videoId,
+                    ),
+                )[0],
             ),
         )
     }
@@ -58,8 +75,7 @@ function toCheckHistoryPresenter(params) {
         groups[item?.video?.id] = group
         return groups
     }, {})
-    const resourceHost =
-        process.env.RESOURCES_PATH || 'http://localhost:5000/resources'
+    const resourceHost = getResourceURL()
     return Object.keys(grouped).map((videoId) => {
         return {
             id: videoId,

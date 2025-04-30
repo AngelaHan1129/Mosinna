@@ -25,6 +25,10 @@ export class CheckResultRepository {
         )
     }
 
+    /**
+     *
+     * @returns {Promise<CheckResult[]>}
+     */
     async getCheckHistory() {
         return (
             await CheckResult.findAll({
@@ -40,6 +44,32 @@ export class CheckResultRepository {
                 ],
                 order: [['checked_at', 'DESC']],
                 // limit: 150,
+            })
+        ).map((el) => el.get({ plain: true }))
+    }
+
+    /**
+     * @param {string} videoId
+     *
+     * @returns {Promise<CheckResult[]>}
+     */
+    async getCheckHistoryByVideoId(videoId) {
+        return (
+            await CheckResult.findAll({
+                where: {
+                    video_id: videoId,
+                },
+                include: [
+                    {
+                        model: Video,
+                        as: 'video',
+                    },
+                    {
+                        model: Service,
+                        as: 'service',
+                    },
+                ],
+                order: [['checked_at', 'DESC']],
             })
         ).map((el) => el.get({ plain: true }))
     }

@@ -6,12 +6,14 @@ import router from "./router";
 import "./index.css";
 import Vue3Toastify, { type ToastContainerOptions } from "vue3-toastify";
 import "vue3-toastify/dist/index.css";
+import Vue3SocialSharingPlugin from "vue3-social-sharing";
 
 const app = createApp(App);
 const pinia = createPinia();
 
 app.use(pinia);
 app.use(router);
+app.use(Vue3SocialSharingPlugin);
 app.use(Vue3Toastify, {
   theme: "light",
   position: "bottom-right",

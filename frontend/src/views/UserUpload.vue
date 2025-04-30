@@ -7,9 +7,9 @@
     ></div>
 
     <!-- 🟪 下方表單區塊 -->
-    <div class="bottom-0 w-full flex justify-center">
+    <div class="h-screen w-full flex justify-center">
       <div
-        class="w-full bg-[hsla(282,18%,39%,0.7)] border border-[#f1ecff] border-b-0 rounded-t-[20px] p-8 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]"
+        class="w-full bg-[hsla(282,18%,39%,0.7)] border border-[#f1ecff] border-b rounded-b-[20px] rounded-t-[20px] p-8 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]"
       >
         <!-- 🔗 URL 輸入區 -->
         <p class="text-2xl font-bold m-0 py-4 px-4 text-left text-[#f1ecff]">
@@ -58,7 +58,6 @@
             點擊上傳
           </button>
         </div>
-
       </div>
     </div>
   </div>

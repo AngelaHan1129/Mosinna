@@ -26,6 +26,16 @@ export class HistoryService {
     async getCheckHistory() {
         return await this.checkResultRepository.getCheckHistory()
     }
+
+    /**
+     * @param {string} videoId
+     * @returns {Promise<CheckHistory[]>}
+     */
+    async getCheckHistoryByVideoId(videoId) {
+        return await this.checkResultRepository.getCheckHistoryByVideoId(
+            videoId,
+        )
+    }
 }
 
 export default new HistoryService()

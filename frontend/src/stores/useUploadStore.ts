@@ -11,8 +11,12 @@ export const useUploadStore = defineStore("upload", () => {
     | SSEEvent<"AllCheckFinished">[]
     | SSEEvent<"VideoCheckFinished">[]
     | SSEEvent<"VideoUploaded">[]
+    | SSEEvent<"VideoSaved">[]
     | SSEEvent<"CheckResultSaved">[]
   >([]); // 用來存儲上傳的事件
+  const videoId = ref<string>(''); // 用來存儲上傳的影片 ID
+  const videoUrl = ref<string>(''); // 用來存儲上傳的影片網址
+  const videoSource = ref<string>(''); // 用來存儲上傳的影片來源
 
   const uploadUrl = async (url: string) => {
     const controller = new AbortController();
@@ -39,16 +43,21 @@ export const useUploadStore = defineStore("upload", () => {
           events.value.push(data);
           toast.remove(toastId);
 
-          if (events.value.find((x) => x.type === "CheckResultSaved")) {
+          if (data.type === "VideoSaved") {
+            videoId.value = data.data.videoId;
+            videoUrl.value = data.data.url;
+            videoSource.value = data.data.source;
+          }
+          if (data.type === "CheckResultSaved") {
             controller.abort();
             return;
           }
-          if (events.value.find((x) => x.type === "ValidationError")) {
+          if (data.type === "ValidationError") {
             toast.error("YouTube 影片無法上傳，請檢查網址是否正確！");
             controller.abort();
             return;
           }
-          if (events.value.find((x) => x.type === "AllCheckFinished")) {
+          if (data.type === "AllCheckFinished") {
             toast.success("影片分析完成！");
           }
         } catch (e) {}
@@ -85,16 +94,21 @@ export const useUploadStore = defineStore("upload", () => {
           events.value.push(data);
           toast.remove(toastId);
 
-          if (events.value.find((x) => x.type === "CheckResultSaved")) {
+          if (data.type === "VideoSaved") {
+            videoId.value = data.data.videoId;
+            videoUrl.value = data.data.url;
+            videoSource.value = data.data.source;
+          }
+          if (data.type === "CheckResultSaved") {
             controller.abort();
             return;
           }
-          if (events.value.find((x) => x.type === "ValidationError")) {
+          if (data.type === "ValidationError") {
             toast.error("影片無法上傳，請注意檔案大小或格式！");
             controller.abort();
             return;
           }
-          if (events.value.find((x) => x.type === "AllCheckFinished")) {
+          if (data.type === "AllCheckFinished") {
             toast.success("影片分析完成！");
           }
         } catch (e) {}
@@ -108,6 +122,9 @@ export const useUploadStore = defineStore("upload", () => {
 
   return {
     events,
+    videoId,
+    videoUrl,
+    videoSource,
     uploadUrl,
     uploadVideo,
   };

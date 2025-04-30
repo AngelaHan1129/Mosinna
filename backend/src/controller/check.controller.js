@@ -3,6 +3,7 @@ import { ServiceRepository } from '../repository/service.repository'
 import { CheckService } from '../service/check.service'
 import { VideoService } from '../service/video.service'
 import { apiFormatter } from '../utils/api-formatter'
+import { getResourceURL } from '../utils/env'
 
 export class CheckController {
     /**
@@ -37,15 +38,21 @@ export class CheckController {
             })
             // proxy to ai detection services
             const { videoData } = req.body
-            const result = await this.checkService.proxyToCheckServiceSSE(res, {
-                videoData,
-            })
 
             // store video
+            const resourceHost = getResourceURL()
             const video = await this.videoService.saveVideo(
                 videoData,
                 '使用者上傳',
             )
+            this.checkService.sendSSE(res, 'VideoSaved', {
+                videoId: video?.id,
+                source: '使用者上傳',
+                url: `${resourceHost}/${video.video_path}`,
+            })
+            const result = await this.checkService.proxyToCheckServiceSSE(res, {
+                videoData,
+            })
 
             // store check result
             const saved = await this.checkService.saveCheckResult({
@@ -95,16 +102,20 @@ export class CheckController {
             }
 
             const videoData = await this.videoService.getVideoData(url)
-            const result = await this.checkService.proxyToCheckServiceSSE(res, {
-                videoData,
-            })
-
             // store video
             const video = await this.videoService.saveVideo(
                 videoData,
                 'Youtube',
                 url,
             )
+            this.checkService.sendSSE(res, 'VideoSaved', {
+                videoId: video?.id,
+                source: 'Youtube',
+                url,
+            })
+            const result = await this.checkService.proxyToCheckServiceSSE(res, {
+                videoData,
+            })
 
             // store check result
             const saved = await this.checkService.saveCheckResult({
