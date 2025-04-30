@@ -27,7 +27,7 @@
                 :key="index"
                 class="border-b"
               >
-                <td class="py-2 px-4">{{ item.source || '使用者上傳' }}</td>
+                <td class="py-2 px-4">{{ item.source || "使用者上傳" }}</td>
                 <td class="py-2 px-4">
                   {{ new Date(item.checkedAt).toLocaleString() }}
                 </td>
@@ -74,7 +74,7 @@
               'px-3 py-2 rounded transition-colors',
               currentPage === page
                 ? 'bg-gray-50 text-stone-900'
-                : 'bg-gray-200 text-stone-900 hover:bg-gray-100'
+                : 'bg-gray-200 text-stone-900 hover:bg-gray-100',
             ]"
           >
             {{ page }}
@@ -140,7 +140,7 @@
                     gridItem.value === 'risky' ? 'bg-[#C8698A]' : 'bg-[#56af54]'
                   "
                 >
-                  {{ gridItem.value === 'risky' ? '可疑內容' : '尚未發現風險' }}
+                  {{ gridItem.value === "risky" ? "可疑內容" : "尚未發現風險" }}
                 </div>
               </div>
             </div>
@@ -156,6 +156,22 @@
                 class="absolute inset-0 w-full h-full object-cover rounded-lg"
               ></video>
             </div>
+            <!-- 影片來源 -->
+            <div class="mt-2 text-sm text-gray-700">
+              影片來源：{{ currentItem?.source }}
+            </div>
+            <!-- 若為 Youtube 顯示連結 -->
+            <div
+              v-if="currentItem?.source !== '使用者上傳'"
+              class="mt-2 text-sm text-gray-700"
+            >
+              影片連結位址：<a
+                :href="currentItem.url"
+                target="_blank"
+                class="underline text-blue-700"
+                >{{ currentItem.url }}</a
+              >
+            </div>
           </div>
         </div>
       </div>
@@ -164,145 +180,150 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import Chart from 'chart.js/auto'
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import Chart from "chart.js/auto";
 
 // State
-const items = ref([])
-const gridItems = ref([])
-const showModal = ref(false)
-const currentItem = ref(null)
-const errorMessage = ref('')
-const currentPage = ref(1)
-const route = useRoute()
-const router = useRouter()
+const items = ref([]);
+const gridItems = ref([]);
+const showModal = ref(false);
+const currentItem = ref(null);
+const errorMessage = ref("");
+const currentPage = ref(1);
+const router = useRouter();
 
 // Constants
-const ITEMS_PER_PAGE = 10
-const API_URL = `${import.meta.env.VITE_BACKEND_HOST}/api/history`
+const ITEMS_PER_PAGE = 10;
+const API_URL = `${import.meta.env.VITE_BACKEND_HOST}/api/history`;
 
 // Computed
 const totalPages = computed(() =>
   Math.ceil(items.value.length / ITEMS_PER_PAGE)
-)
+);
 const paginatedItems = computed(() => {
-  const start = (currentPage.value - 1) * ITEMS_PER_PAGE
-  const end = start + ITEMS_PER_PAGE
-  return items.value.slice(start, end)
-})
+  const start = (currentPage.value - 1) * ITEMS_PER_PAGE;
+  const end = start + ITEMS_PER_PAGE;
+  return items.value.slice(start, end);
+});
 const pages = computed(() =>
   Array.from({ length: totalPages.value }, (_, i) => i + 1)
-)
+);
 
 // Methods
 const changePage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
+    currentPage.value = page;
   }
-}
+};
 
 const handleReport = (item) => {
-  const textService = item.services.find((s) => s.name === '文字詐騙檢測服務')
+  const textService = item.services.find((s) => s.name === "文字詐騙檢測服務");
   const riskyServices = item.services
-    .filter((s) => s.result === 'risky')
+    .filter((s) => s.result === "risky")
     .map((s) => `「${s.name}」`)
-    .join('、')
+    .join("、");
 
   const reportText =
-    `影片來源：${item.source || '使用者上傳'}\n` +
-    `影片語音內容：${textService?.details?.text || ''}\n` +
+    `影片來源：${item.source || "使用者上傳"}\n` +
+    (item.url
+      ? `影片連結：${item.url}\n`
+      : "") +
+    `檢測時間：${new Date(item.checkedAt).toLocaleString()}\n` +
+    `檢測結果：\n` +
+    `影片語音內容：${textService?.details?.text || ""}\n` +
     `已檢測到風險：${riskyServices}\n\n` +
     `檢測來源：魔聲仔－影片檢測平台 ${
       import.meta.env.VITE_FRONTEND_HOST
-    }/UserHistory?id=${item.id}`
+    }/UserHistory?id=${item.id}`;
 
-  localStorage.setItem('reportText', reportText)
-  router.push('/Notification')
-}
+  localStorage.setItem("reportText", reportText);
+  router.push("/Notification");
+};
 
 const fetchHistory = async () => {
   try {
-    const response = await fetch(API_URL)
-    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`)
+    const response = await fetch(API_URL);
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
-    const { data: storedData, status, message } = await response.json()
+    const { data: storedData, status, message } = await response.json();
     if (!storedData || storedData?.length === 0) {
-      errorMessage.value = '沒有檢測記錄'
-      return
+      errorMessage.value = "沒有檢測記錄";
+      return;
     }
     const filteredData = storedData
       .filter((item) =>
-        item.services.some((service) => service.result === 'risky')
+        item.services.some((service) => service.result === "risky")
       )
-      .sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at))
+      .sort((a, b) => new Date(b.checked_at) - new Date(a.checked_at));
 
     if (Array.isArray(filteredData)) {
       items.value = filteredData.map((item) => ({
         id: item.id,
-        source: item.source || '使用者上傳',
+        videoUrl: item.video_path,
+        source: item.source || "使用者上傳",
+        url: item.url,
         services: item.services.map((service) => ({
-          name: service.name || '未知服務',
-          result: service.result || '未知',
-          details: JSON.parse(service.details || '{}')
+          name: service.name,
+          result: service.result,
+          details: JSON.parse(service.details || "{}"),
         })),
-        checkedAt: item.checked_at || '',
-        videoUrl: item.video_path || ''
-      }))
+        checkedAt: item.checked_at || "",
+      }));
     }
   } catch (error) {
-    console.error('Fetch Error:', error)
-    errorMessage.value = '獲取資料失敗，請稍後重試'
+    console.error("Fetch Error:", error);
+    errorMessage.value = "獲取資料失敗，請稍後重試";
   }
-}
+};
 
 const showDetails = (item) => {
-  currentItem.value = item
-  showModal.value = true
+  currentItem.value = item;
+  showModal.value = true;
   gridItems.value = item.services.map((service) => ({
     title: service.name,
-    value: service.result === 'risky' ? 'risky' : 'pass'
-  }))
-  setTimeout(renderChart, 300)
-}
+    value: service.result === "risky" ? "risky" : "pass",
+  }));
+  setTimeout(renderChart, 300);
+};
 
 const renderChart = () => {
-  const ctx = document.getElementById('myChartHistory')?.getContext('2d')
-  if (!ctx) return
+  const ctx = document.getElementById("myChartHistory")?.getContext("2d");
+  if (!ctx) return;
 
   const riskyCount = gridItems.value.filter(
-    (item) => item.value === 'risky'
-  ).length
+    (item) => item.value === "risky"
+  ).length;
   const passCount = gridItems.value.filter(
-    (item) => item.value === 'pass'
-  ).length
+    (item) => item.value === "pass"
+  ).length;
 
   new Chart(ctx, {
-    type: 'doughnut',
+    type: "doughnut",
     data: {
       datasets: [
         {
-          label: '檢測結果',
+          label: "檢測結果",
           data: [passCount, riskyCount],
-          backgroundColor: ['#56af54', '#C8698A'],
-          borderColor: 'rgba(75, 192, 192, 1)',
-          borderWidth: 0.2
-        }
-      ]
+          backgroundColor: ["#56af54", "#C8698A"],
+          borderColor: "rgba(75, 192, 192, 1)",
+          borderWidth: 0.2,
+        },
+      ],
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false
-    }
-  })
-}
+      maintainAspectRatio: false,
+    },
+  });
+};
 
 // Lifecycle
 onMounted(() => {
-  fetchHistory()
-})
+  fetchHistory();
+});
 
 const closePopup = () => {
-  showModal.value = false
-}
+  showModal.value = false;
+};
 </script>

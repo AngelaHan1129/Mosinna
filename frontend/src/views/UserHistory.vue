@@ -163,10 +163,12 @@
               v-if="currentItem?.source !== '使用者上傳'"
               class="mt-2 text-sm text-gray-700"
             >
-              影片連結位址：
-              <a :href="currentItem.url" target="_blank" class="underline text-blue-700">
-                {{ currentItem.url }}
-              </a>
+              影片連結位址：<a
+                :href="currentItem.url"
+                target="_blank"
+                class="underline text-blue-700"
+                >{{ currentItem.url }}</a
+              >
             </div>
           </div>
 
@@ -194,7 +196,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { useRoute } from "vue-router";
 import Chart from "chart.js/auto";
 import ShareResult from "../components/ShareResult.vue";
 
