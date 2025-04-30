@@ -70,6 +70,9 @@ export class CheckResultRepository {
                     },
                 ],
                 order: [['checked_at', 'DESC']],
+            }).catch((err) => {
+                console.log('getCheckHistoryByVideoId error', err?.message)
+                return []
             })
         ).map((el) => el.get({ plain: true }))
     }

@@ -203,11 +203,13 @@ import { ref, watch } from "vue";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { SSEEvent, SSEEventType, VideoCheckFinishedData } from "@/types/event";
 import YoutubeEmbed from "@/components/YoutubeEmbed.vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { ShareNetwork } from "vue3-social-sharing";
+import { toast } from "vue3-toastify";
 
 const uploadStore = useUploadStore();
 const route = useRoute();
+const router = useRouter();
 
 const checkResultId = ref(route.query?.id as string | undefined);
 const showModal = ref(false);
@@ -263,6 +265,9 @@ else if (uploadStore.events.length > 0) {
   checkResultId.value = uploadStore.videoId;
   renderCheckResultFromStore();
   setShareInfo();
+} else {
+  toast.warn("請先上傳影片！")
+  router.push("/UserUpload");
 }
 
 const handleCardButtonClick = (card: Card) => {
@@ -351,6 +356,9 @@ function renderCheckResultFromAPI() {
         } as SSEEvent<"VideoCheckFinished">);
       });
       setShareInfo();
+    }).catch(() => {
+      toast.error("無法獲取檢測結果，請稍後再試。");
+      router.push("/UserUpload");
     });
 }
 

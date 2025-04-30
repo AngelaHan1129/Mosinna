@@ -32,15 +32,13 @@ export class HistoryController {
      * @param {import("express").Response} res
      */
     async getCheckHistoryByVideoId(req, res) {
-        return res.json(
-            apiFormatter(
-                toCheckHistoryPresenter(
-                    await this.historyService.getCheckHistoryByVideoId(
-                        req.params.videoId,
-                    ),
-                )[0],
-            ),
+        const data = await this.historyService.getCheckHistoryByVideoId(
+            req.params.videoId,
         )
+        if (!data || data.length === 0) {
+            return res.status(404).json(apiFormatter(null, 404, '查無資料'))
+        }
+        return res.json(apiFormatter(toCheckHistoryPresenter(data)[0]))
     }
 }
 
@@ -69,6 +67,9 @@ export class HistoryController {
  * @param {CheckHistory[]} params
  */
 function toCheckHistoryPresenter(params) {
+    if (!params || params.length === 0) {
+        return []
+    }
     const grouped = params.reduce((groups, item) => {
         const group = groups[item.video?.id] || []
         group.push(item)
