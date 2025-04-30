@@ -137,10 +137,12 @@
           />
         </div>
         <!-- 影片來源 -->
-        <div class="mt-2 text-sm text-gray-700">影片來源：{{ sourceType }}</div>
+        <div v-if="sourceType" class="mt-2 text-sm text-gray-700">
+          影片來源：{{ sourceType }}
+        </div>
         <!-- 若為 Youtube 顯示連結 -->
         <div
-          v-if="sourceType !== '使用者上傳'"
+          v-if="sourceType && sourceType !== '使用者上傳'"
           class="mt-2 text-sm text-gray-700"
         >
           影片連結位址：<a
@@ -257,8 +259,7 @@ const setShareInfo = () => {
 
 // Get CheckResult from backend
 if (!!checkResultId.value) {
-  renderCheckResultFromAPI();
-  setShareInfo();
+  renderCheckResultFromAPI().then(() => setShareInfo());
 }
 // Get CheckResult from store
 else if (uploadStore.events.length > 0) {
@@ -266,7 +267,7 @@ else if (uploadStore.events.length > 0) {
   renderCheckResultFromStore();
   setShareInfo();
 } else {
-  toast.warn("請先上傳影片！")
+  toast.warn("請先上傳影片！");
   router.push("/UserUpload");
 }
 
@@ -327,8 +328,8 @@ interface Card {
   details?: string | object | null;
 }
 
-function renderCheckResultFromAPI() {
-  fetch(
+async function renderCheckResultFromAPI() {
+  return await fetch(
     `${import.meta.env.VITE_BACKEND_HOST}/api/history/${checkResultId.value}`,
     {
       method: "GET",
@@ -355,8 +356,8 @@ function renderCheckResultFromAPI() {
           },
         } as SSEEvent<"VideoCheckFinished">);
       });
-      setShareInfo();
-    }).catch(() => {
+    })
+    .catch(() => {
       toast.error("無法獲取檢測結果，請稍後再試。");
       router.push("/UserUpload");
     });

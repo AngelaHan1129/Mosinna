@@ -297,7 +297,7 @@ const handleReport = (item: HistoryPageItem) => {
     `已檢測到風險：${riskyServices}\n\n` +
     `檢測來源：魔聲仔－影片檢測平台 ${
       import.meta.env.VITE_FRONTEND_HOST
-    }/UserHistory?id=${item.id}`;
+    }/UserReport?id=${item.id}`;
 
   localStorage.setItem("reportText", reportText);
   router.push("/Notification");
