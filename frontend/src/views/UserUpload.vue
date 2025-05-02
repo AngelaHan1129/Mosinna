@@ -17,6 +17,14 @@
         </p>
         <div class="flex flex-col sm:flex-row gap-4">
           <input
+            @keypress="
+              (event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  submitUrl();
+                }
+              }
+            "
             v-model="urlInput"
             type="url"
             placeholder="請輸入影片連結(僅支援 Youtube)"
@@ -33,7 +41,14 @@
         </p>
         <div
           @click="triggerFileUpload"
-          class="border-2 border-dashed border-[#f1ecff] px-4 py-12 text-center rounded-[10px] bg-transparent cursor-pointer"
+          @dragenter.prevent.stop="onDragEnter"
+          @dragover.prevent.stop
+          @dragleave.prevent.stop="onDragLeave"
+          @drop.prevent.stop="onDrop"
+          :class="[
+            'border-2 border-dashed border-[#f1ecff] px-4 py-12 text-center rounded-[10px] bg-transparent cursor-pointer transition-colors duration-300 ease-in-out',
+            { 'bg-[hsla(282,30%,50%,0.5)]': isDragging }, // Apply class when dragging over
+          ]"
         >
           <div v-if="file" class="text-[#f1ecff]">
             <p>
@@ -43,8 +58,11 @@
               </span>
             </p>
           </div>
-          <label v-else class="block text-[#f1ecff] text-base">
-            點擊按鈕或拖曳檔案上傳
+          <label
+            v-else
+            class="block text-[#f1ecff] text-base pointer-events-none"
+          >
+            {{ isDragging ? "放開以選擇檔案" : "點擊按鈕或拖曳檔案上傳" }}
           </label>
           <input
             id="file-upload"
@@ -66,23 +84,30 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { useUploadStore } from "@/stores/useUploadStore";
-import { useRouter } from "vue-router"; // ✨新增這行
+import { useRouter } from "vue-router";
 import { toast } from "vue3-toastify";
 
-const router = useRouter(); // ✨新增這行
+const router = useRouter();
 const uploadStore = useUploadStore();
 
 const file = ref<File>();
 const urlInput = ref("");
 const fileInput = ref<HTMLInputElement>();
+const isDragging = ref(false); // State to track drag status
 
 const triggerFileUpload = () => {
   fileInput.value?.click();
 };
 
-const handleFileChange = (event: Event) => {
-  const selectedFile = (event.target as HTMLInputElement).files?.[0];
-  if (!selectedFile || !selectedFile.type.startsWith("video/")) return;
+const processFile = (selectedFile: File | undefined) => {
+  if (!selectedFile) {
+    toast.error("未選擇任何檔案");
+    return;
+  }
+  if (!selectedFile.type.startsWith("video/")) {
+    toast.error("請上傳影片檔案");
+    return;
+  }
 
   file.value = selectedFile;
   const reader = new FileReader();
@@ -93,10 +118,25 @@ const handleFileChange = (event: Event) => {
       uploadStore.uploadVideo(result);
     } else {
       console.error("FileReader result is not a string");
+      toast.error("讀取檔案時發生錯誤");
     }
   };
 
+  reader.onerror = () => {
+    console.error("FileReader error");
+    toast.error("讀取檔案時發生錯誤");
+  };
+
   reader.readAsDataURL(selectedFile);
+};
+
+const handleFileChange = (event: Event) => {
+  const selectedFile = (event.target as HTMLInputElement).files?.[0];
+  processFile(selectedFile);
+  // Reset file input value to allow selecting the same file again
+  if (event.target) {
+    (event.target as HTMLInputElement).value = "";
+  }
 };
 
 const submitUrl = () => {
@@ -106,6 +146,31 @@ const submitUrl = () => {
   }
   uploadStore.uploadUrl(urlInput.value);
 };
+
+// --- Drag and Drop Handlers ---
+const onDragEnter = () => {
+  isDragging.value = true;
+};
+
+const onDragLeave = () => {
+  isDragging.value = false;
+};
+
+const onDrop = (event: DragEvent) => {
+  isDragging.value = false; // Reset drag state
+  const droppedFiles = event.dataTransfer?.files;
+
+  if (!droppedFiles || droppedFiles.length === 0) {
+    toast.error("未拖曳任何檔案");
+    return;
+  }
+  if (droppedFiles.length > 1) {
+    toast.error("一次只能上傳一個檔案");
+    return;
+  }
+  processFile(droppedFiles[0]);
+};
+// --- End Drag and Drop Handlers ---
 
 watch(
   () => uploadStore.events,
@@ -134,5 +199,10 @@ watch(
 
 video {
   max-height: 300px;
+}
+
+/* Add pointer-events: none to label to prevent interfering with drop */
+label.pointer-events-none {
+  pointer-events: none;
 }
 </style>
